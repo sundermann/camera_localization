@@ -1,12 +1,17 @@
 #pragma once
 #include <ros/ros.h>
 
-#include <tf2_ros/transform_broadcaster.h>
+#include <tf2_ros/transform_listener.h>
+#include <tf2_ros/static_transform_broadcaster.h>
 #include <tf2/LinearMath/Matrix3x3.h>
 #include <tf2/LinearMath/Quaternion.h>
 #include <tf2_geometry_msgs/tf2_geometry_msgs.h>
 
+#include <nav_msgs/Odometry.h>
+#include <visualization_msgs/Marker.h>
+
 #include <fub_visual_odometry/VisualOdometryConfig.h>
+
 
 #include <image_transport/image_transport.h>
 #include <dynamic_reconfigure/server.h>
@@ -46,12 +51,17 @@ class VisualOdometry {
     image_transport::Publisher markerMaskPublisher;
     image_transport::Publisher carMaskPublisher;
     image_transport::Publisher detectionPublisher;
+    ros::Publisher markerPublisher;
+    ros::Publisher odomPublisher;
     image_transport::CameraSubscriber imageSubscriber;
 
-    tf2_ros::TransformBroadcaster transformBroadcaster;
+    tf2_ros::StaticTransformBroadcaster transformBroadcaster;
+    tf2_ros::Buffer tfBuffer;
+    tf2_ros::TransformListener tfListener;
 
     VisualOdometryConfig config;
     std::vector<Circle> foundMarkers;
+    geometry_msgs::TransformStamped transformation;
 };
 
 }

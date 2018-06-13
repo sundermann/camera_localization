@@ -1,14 +1,18 @@
+#include <geos_c.h>
 #include "VisualOdometry.h"
 
 
 namespace fub_visual_odometry {
 
-VisualOdometry::VisualOdometry(ros::NodeHandle& nh) {
+VisualOdometry::VisualOdometry(ros::NodeHandle& nh) : tfListener(tfBuffer) {
     image_transport::ImageTransport it(nh);
-    imageSubscriber = it.subscribeCamera("/tracking/cam_left/image_raw", 100, &VisualOdometry::onImage, this, image_transport::TransportHints("compressed"));
-    detectionPublisher = it.advertise("detection", 100);
-    markerMaskPublisher = it.advertise("marker_mask", 100);
-    carMaskPublisher = it.advertise("car_mask", 100);
+    imageSubscriber = it.subscribeCamera("/tracking/cam_left/image_raw", 1, &VisualOdometry::onImage, this, image_transport::TransportHints("compressed"));
+    detectionPublisher = it.advertise("detection", 1);
+    markerMaskPublisher = it.advertise("marker_mask", 1);
+    carMaskPublisher = it.advertise("car_mask", 1);
+    markerPublisher = nh.advertise<visualization_msgs::Marker>("marker", 1);
+    odomPublisher = nh.advertise<nav_msgs::Odometry>("odom", 1);
+
 
     nodeHandle = nh;
 
@@ -83,43 +87,96 @@ void VisualOdometry::onImage(const sensor_msgs::ImageConstPtr &msg, const sensor
         {3.44, 0.04, 0}, {5.49, 0.27, 0}, {5.38, 3.96, 0}, {3.40, 3.95, 0}
     };
 
-    image_geometry::PinholeCameraModel cameraModel;
-    cameraModel.fromCameraInfo(info_msg);
+    if (mapMarkers.size() == 4) {
+        image_geometry::PinholeCameraModel cameraModel;
+        cameraModel.fromCameraInfo(info_msg);
 
-    cv::Mat1d rvec = cv::Mat1d::zeros(3,1);
-    cv::Mat1d tvec = cv::Mat1d::zeros(3,1);
+        cv::Mat1d rvec = cv::Mat1d::zeros(3, 1);
+        cv::Mat1d tvec = cv::Mat1d::zeros(3, 1);
 
-    cv::solvePnP(worldCoordinates, imageCoordinates, cameraModel.intrinsicMatrix(), cameraModel.distortionCoeffs(), rvec, tvec, false, cv::SOLVEPNP_EPNP);
+        cv::solvePnP(worldCoordinates,
+                     imageCoordinates,
+                     cameraModel.intrinsicMatrix(),
+                     cameraModel.distortionCoeffs(),
+                     rvec,
+                     tvec,
+                     false,
+                     cv::SOLVEPNP_EPNP);
 
-    cv::Mat1d rod = cv::Mat1d::zeros(3, 3);
-    cv::Rodrigues(rvec, rod);
+        cv::Mat1d rod = cv::Mat1d::zeros(3, 3);
+        cv::Rodrigues(rvec, rod);
 
-    rod = rod.t();
-    tvec = -tvec;
+        rod = rod.t();
+        tvec = -rod * tvec;
 
-    tf2::Matrix3x3 cameraRotation(rod(0,0), rod(0,1), rod(0,2),
-                                  rod(1,0), rod(1,1), rod(1,2),
-                                  rod(2,0), rod(2,1), rod(2,2));
+        tf2::Matrix3x3 cameraRotation(rod(0, 0), rod(0, 1), rod(0, 2),
+                                      rod(1, 0), rod(1, 1), rod(1, 2),
+                                      rod(2, 0), rod(2, 1), rod(2, 2));
+
+        tf2::Vector3 cameraTranslation(tvec(0, 0), tvec(1, 0), tvec(2, 0));
+
+        geometry_msgs::TransformStamped cameraTransform;
+        cameraTransform.header = msg->header;
+        cameraTransform.header.stamp = ros::Time::now();
+        cameraTransform.header.frame_id = "map";
+        cameraTransform.child_frame_id = "cam_left";
+        geometry_msgs::Vector3 m;
+        tf2::convert(cameraTranslation, m);
+        cameraTransform.transform.translation = m;
+        geometry_msgs::Quaternion q;
+        tf2::Quaternion tfq;
+        cameraRotation.getRotation(tfq);
+        tf2::convert(tfq, q);
+        cameraTransform.transform.rotation = q;
+
+        transformBroadcaster.sendTransform(cameraTransform);
+
+        cv::Mat1d A(3,3);
+        A << cameraTranslation.z(), 0, -cameraTranslation.x(), 0, cameraTranslation.z(), -cameraTranslation.y(), 0, 0, -1;
+        cv::Mat1d mat = A * rod * cv::Mat(cameraModel.intrinsicMatrix().inv());
+        cv::Mat1d p(3,1);
+        p << carMarkers[0].center.x, carMarkers[0].center.y, 1.0;
+
+        cv::Mat1d p2 = mat * p;
+        p2 /= p2(2,0);
+
+        visualization_msgs::Marker marker;
+        marker.header.frame_id = "/map";
+        marker.header.stamp = ros::Time::now();
+        marker.ns = "car_coordinate";
+        marker.id = 0;
+        marker.type = visualization_msgs::Marker::SPHERE;
+        marker.action = visualization_msgs::Marker::ADD;
+        marker.pose.position.x = p2[0][0];
+        marker.pose.position.y = p2[1][0];
+        marker.pose.position.z = 0;
+        marker.pose.orientation.x = 0.0;
+        marker.pose.orientation.y = 0.0;
+        marker.pose.orientation.z = 0.0;
+        marker.pose.orientation.w = 1.0;
+        marker.scale.x = 0.1;
+        marker.scale.y = 0.1;
+        marker.scale.z = 0.1;
+        marker.color.a = 1.0; // Don't forget to set the alpha!
+        marker.color.r = 0.0;
+        marker.color.g = 1.0;
+        marker.color.b = 0.0;
+        markerPublisher.publish(marker);
 
 
+        nav_msgs::Odometry odometry;
+        odometry.header.frame_id = "/map";
+        odometry.header.stamp = ros::Time::now();
+        odometry.pose.pose.position.x = p2[0][0];
+        odometry.pose.pose.position.y = p2[1][0];
+        odometry.pose.pose.position.z = 0;
+        odometry.pose.pose.orientation.x = 0.0;
+        odometry.pose.pose.orientation.y = 0.0;
+        odometry.pose.pose.orientation.z = 0.0;
+        odometry.pose.pose.orientation.w = 1.0;
 
-    tf2::Vector3 cameraTranslation(tvec(0,0),tvec(1,0),tvec(2,0));
-
-
-    geometry_msgs::TransformStamped cameraTransform;
-    cameraTransform.header = msg->header;
-    cameraTransform.header.frame_id = "map";
-    cameraTransform.child_frame_id = "cam_left";
-    geometry_msgs::Vector3 m;
-    tf2::convert(cameraTranslation, m);
-    cameraTransform.transform.translation = m;
-    geometry_msgs::Quaternion q;
-    tf2::Quaternion tfq;
-    cameraRotation.getRotation(tfq);
-    tf2::convert(tfq, q);
-    cameraTransform.transform.rotation = q;
-
-    transformBroadcaster.sendTransform(cameraTransform);
+        odomPublisher.publish(odometry);
+    }
 
     detectionPublisher.publish(cvDetectionImage->toImageMsg());
     carMaskPublisher.publish(cvCarMaskImage->toImageMsg());
