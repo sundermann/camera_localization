@@ -14,7 +14,6 @@ VisualOdometry::VisualOdometry(ros::NodeHandle& nh) : tfListener(tfBuffer) {
     markerPublisher = nh.advertise<visualization_msgs::Marker>("marker", 1);
     odomPublisher = nh.advertise<nav_msgs::Odometry>("odom", 1);
 
-
     nodeHandle = nh;
 
     f = boost::bind(&VisualOdometry::onReconfigure, this, _1, _2);
@@ -106,69 +105,80 @@ void VisualOdometry::onImage(const sensor_msgs::ImageConstPtr &msg, const sensor
     }
 
     if (foundCamera) {
-        auto frontPoint = getMapCoordinates(cameraModel, carFrontMarkers[0].center);
-        auto rearPoint = getMapCoordinates(cameraModel, carRearMarkers[0].center);
 
-        visualization_msgs::Marker frontMarker;
-        frontMarker.header.frame_id = "map";
-        frontMarker.header.stamp = ros::Time::now();
-        frontMarker.ns = "car_coordinate";
-        frontMarker.id = 0;
-        frontMarker.type = visualization_msgs::Marker::SPHERE;
-        frontMarker.action = visualization_msgs::Marker::ADD;
-        frontMarker.pose = frontPoint;
-        frontMarker.pose.position.z = 0;
-        frontMarker.pose.orientation.x = 0.0;
-        frontMarker.pose.orientation.y = 0.0;
-        frontMarker.pose.orientation.z = 0.0;
-        frontMarker.pose.orientation.w = 1.0;
-        frontMarker.scale.x = 0.1;
-        frontMarker.scale.y = 0.1;
-        frontMarker.scale.z = 0.1;
-        frontMarker.color.a = 1.0;
-        frontMarker.color.r = 0.0;
-        frontMarker.color.g = 0.0;
-        frontMarker.color.b = 1.0;
-        markerPublisher.publish(frontMarker);
+        if (!carFrontMarkers.empty()) {
+            auto frontPoint = getMapCoordinates(cameraModel, carFrontMarkers[0].center);
 
-        visualization_msgs::Marker rearMarker;
-        rearMarker.header.frame_id = "map";
-        rearMarker.header.stamp = ros::Time::now();
-        rearMarker.ns = "car_coordinate";
-        rearMarker.id = 1;
-        rearMarker.type = visualization_msgs::Marker::SPHERE;
-        rearMarker.action = visualization_msgs::Marker::ADD;
-        rearMarker.pose = rearPoint;
-        rearMarker.pose.position.z = 0;
-        rearMarker.pose.orientation.x = 0.0;
-        rearMarker.pose.orientation.y = 0.0;
-        rearMarker.pose.orientation.z = 0.0;
-        rearMarker.pose.orientation.w = 1.0;
-        rearMarker.scale.x = 0.1;
-        rearMarker.scale.y = 0.1;
-        rearMarker.scale.z = 0.1;
-        rearMarker.color.a = 1.0;
-        rearMarker.color.r = 1.0;
-        rearMarker.color.g = 0.0;
-        rearMarker.color.b = 0.0;
-        markerPublisher.publish(rearMarker);
+            visualization_msgs::Marker frontMarker;
+            frontMarker.header.frame_id = "map";
+            frontMarker.header.stamp = ros::Time::now();
+            frontMarker.ns = "car_coordinate";
+            frontMarker.id = 0;
+            frontMarker.type = visualization_msgs::Marker::SPHERE;
+            frontMarker.action = visualization_msgs::Marker::ADD;
+            frontMarker.pose = frontPoint;
+            frontMarker.pose.position.z = 0;
+            frontMarker.pose.orientation.x = 0.0;
+            frontMarker.pose.orientation.y = 0.0;
+            frontMarker.pose.orientation.z = 0.0;
+            frontMarker.pose.orientation.w = 1.0;
+            frontMarker.scale.x = 0.1;
+            frontMarker.scale.y = 0.1;
+            frontMarker.scale.z = 0.1;
+            frontMarker.color.a = 1.0;
+            frontMarker.color.r = 0.0;
+            frontMarker.color.g = 0.0;
+            frontMarker.color.b = 1.0;
+            markerPublisher.publish(frontMarker);
+        }
 
-        nav_msgs::Odometry odometry;
-        odometry.header.frame_id = "map";
-        odometry.header.stamp = ros::Time::now();
-        odometry.pose.pose = frontPoint;
-        odometry.pose.pose.position.z = 0;
-        auto yaw = getOrientation(frontPoint, rearPoint);
+        if (!carRearMarkers.empty()) {
+            auto rearPoint = getMapCoordinates(cameraModel, carRearMarkers[0].center);
 
-        geometry_msgs::Quaternion orientation;
-        orientation.x = 0;
-        orientation.y = 0;
-        orientation.z = sin(yaw / 2);
-        orientation.w = cos(yaw / 2);
+            visualization_msgs::Marker rearMarker;
+            rearMarker.header.frame_id = "map";
+            rearMarker.header.stamp = ros::Time::now();
+            rearMarker.ns = "car_coordinate";
+            rearMarker.id = 1;
+            rearMarker.type = visualization_msgs::Marker::SPHERE;
+            rearMarker.action = visualization_msgs::Marker::ADD;
+            rearMarker.pose = rearPoint;
+            rearMarker.pose.position.z = 0;
+            rearMarker.pose.orientation.x = 0.0;
+            rearMarker.pose.orientation.y = 0.0;
+            rearMarker.pose.orientation.z = 0.0;
+            rearMarker.pose.orientation.w = 1.0;
+            rearMarker.scale.x = 0.1;
+            rearMarker.scale.y = 0.1;
+            rearMarker.scale.z = 0.1;
+            rearMarker.color.a = 1.0;
+            rearMarker.color.r = 1.0;
+            rearMarker.color.g = 0.0;
+            rearMarker.color.b = 0.0;
+            markerPublisher.publish(rearMarker);
+        }
 
-        odometry.pose.pose.orientation = orientation;
+        if (!carFrontMarkers.empty() && !carRearMarkers.empty()) {
+            auto frontPoint = getMapCoordinates(cameraModel, carFrontMarkers[0].center);
+            auto rearPoint = getMapCoordinates(cameraModel, carRearMarkers[0].center);
 
-        odomPublisher.publish(odometry);
+            nav_msgs::Odometry odometry;
+            odometry.header.frame_id = "map";
+            odometry.header.stamp = ros::Time::now();
+            odometry.pose.pose = frontPoint;
+            odometry.pose.pose.position.z = 0;
+            auto yaw = getOrientation(frontPoint, rearPoint);
+
+            geometry_msgs::Quaternion orientation;
+            orientation.x = 0;
+            orientation.y = 0;
+            orientation.z = sin(yaw / 2);
+            orientation.w = cos(yaw / 2);
+
+            odometry.pose.pose.orientation = orientation;
+
+            odomPublisher.publish(odometry);
+        }
     } else if (mapMarkers.size() == 4) {
         std::vector<cv::Point3f> worldCoordinates = {
             {3.44, 0.04, 0}, {5.49, 0.27, 0}, {5.38, 3.79, 0}, {3.40, 3.80, 0}
