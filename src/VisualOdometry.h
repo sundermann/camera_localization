@@ -39,8 +39,38 @@ class VisualOdometry {
     void onImage(const sensor_msgs::ImageConstPtr &msg, const sensor_msgs::CameraInfoConstPtr &info_msg);
     void onReconfigure(VisualOdometryConfig &config, uint32_t level);
 
+    /**
+     * Finds contours inside an image. It will apply 3x3 erosion and dilation to the image to reduce noise to speed up calculation
+     * @param image Image to detect the contours in. Will be modified with erosion and dilation
+     * @param contours The detected contours without any hierarchy
+     */
     void findContours(const cv::Mat &image, cv::OutputArrayOfArrays contours) const;
+
+    /**
+     * Detects markers in the image using contours. The found contours are sorted by their area and will be returned in
+     * the makers param. A circle is fitted onto the found contours.
+     * @param image The image to detect markers in. This should be a masked image
+     * @param markers The found circle markers will be returned here
+     * @param n Maximum number of markers to detect
+     */
     void findBestMarkers(const cv::Mat &image, std::vector<Circle> &markers, int n) const;
+
+    /**
+     * Transforms a pixel coordinate into map coordinates using inverse reprojection.
+     * @param cameraModel The camera model containing the parameters of the camera
+     * @param point Pixel coordinates
+     * @return A pose with the coordinates in the map frame
+     */
+    geometry_msgs::Pose getMapCoordinates(const image_geometry::PinholeCameraModel& cameraModel, const cv::Point2d& point) const;
+
+    /**
+     * Calculates the yaw orientation of two points in a line using atan(front - rear)
+     * @param front The front point
+     * @param rear The rear point
+     * @return yaw orientation
+     */
+    double getOrientation(const geometry_msgs::Pose& front, const geometry_msgs::Pose& rear);
+
 
     static std::string cvTypeToRosType(int type);
 
@@ -49,7 +79,8 @@ class VisualOdometry {
     dynamic_reconfigure::Server<VisualOdometryConfig>::CallbackType f;
 
     image_transport::Publisher markerMaskPublisher;
-    image_transport::Publisher carMaskPublisher;
+    image_transport::Publisher carFrontMaskPublisher;
+    image_transport::Publisher carRearMaskPublisher;
     image_transport::Publisher detectionPublisher;
     ros::Publisher markerPublisher;
     ros::Publisher odomPublisher;
@@ -62,6 +93,11 @@ class VisualOdometry {
     VisualOdometryConfig config;
     std::vector<Circle> foundMarkers;
     geometry_msgs::TransformStamped transformation;
+
+
+    bool foundCamera = false;
+    cv::Mat1d rotationMatrix;
+    cv::Mat1d translationMatrix;
 };
 
 }
