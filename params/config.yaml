@@ -1,0 +1,51 @@
+!!python/object/new:dynamic_reconfigure.encoding.Config
+dictitems:
+  car_front_marker_max_h: 146
+  car_front_marker_max_s: 255
+  car_front_marker_max_v: 213
+  car_front_marker_min_h: 72
+  car_front_marker_min_s: 147
+  car_front_marker_min_v: 62
+  car_rear_marker_max_h: 255
+  car_rear_marker_max_s: 255
+  car_rear_marker_max_v: 255
+  car_rear_marker_min_h: 0
+  car_rear_marker_min_s: 214
+  car_rear_marker_min_v: 214
+  groups: !!python/object/new:dynamic_reconfigure.encoding.Config
+    dictitems:
+      car_front_marker_max_h: 146
+      car_front_marker_max_s: 255
+      car_front_marker_max_v: 213
+      car_front_marker_min_h: 72
+      car_front_marker_min_s: 147
+      car_front_marker_min_v: 62
+      car_rear_marker_max_h: 255
+      car_rear_marker_max_s: 255
+      car_rear_marker_max_v: 255
+      car_rear_marker_min_h: 0
+      car_rear_marker_min_s: 214
+      car_rear_marker_min_v: 214
+      groups: !!python/object/new:dynamic_reconfigure.encoding.Config
+        state: []
+      id: 0
+      map_marker_max_h: 70
+      map_marker_max_s: 255
+      map_marker_max_v: 213
+      map_marker_min_h: 12
+      map_marker_min_s: 147
+      map_marker_min_v: 48
+      name: Default
+      parameters: !!python/object/new:dynamic_reconfigure.encoding.Config
+        state: []
+      parent: 0
+      state: true
+      type: ''
+    state: []
+  map_marker_max_h: 70
+  map_marker_max_s: 255
+  map_marker_max_v: 213
+  map_marker_min_h: 12
+  map_marker_min_s: 147
+  map_marker_min_v: 48
+state: []
