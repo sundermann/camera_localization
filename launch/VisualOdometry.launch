@@ -1,0 +1,26 @@
+<launch>
+    <node name="dynamic_reconfigure_load" pkg="dynamic_reconfigure" type="dynparam" args="load /fub_visual_odometry $(find fub_visual_odometry)/params/config.yaml" />
+
+    <node name="fub_visual_odometry" pkg="fub_visual_odometry" type="fub_visual_odometry_node">
+        <!-- car marker translation in respect to base_link -->
+        <param name="front_marker_translation_x" value="0.15" />
+        <param name="front_marker_translation_y" value="0" />
+        <param name="front_marker_translation_z" value="0.15" />
+
+        <param name="marker_1_x" value="3.44" />
+        <param name="marker_1_y" value="0.04" />
+        <param name="marker_1_z" value="0.0" />
+
+        <param name="marker_2_x" value="5.49" />
+        <param name="marker_2_y" value="0.27" />
+        <param name="marker_2_z" value="0.0" />
+
+        <param name="marker_3_x" value="5.38" />
+        <param name="marker_3_y" value="3.79" />
+        <param name="marker_3_z" value="0.0" />
+
+        <param name="marker_4_x" value="3.40" />
+        <param name="marker_4_y" value="3.80" />
+        <param name="marker_4_z" value="0.0" />
+    </node>
+</launch>
