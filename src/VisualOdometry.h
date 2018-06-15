@@ -3,12 +3,13 @@
 
 #include <tf2_ros/transform_listener.h>
 #include <tf2_ros/static_transform_broadcaster.h>
+#include <tf2_ros/transform_broadcaster.h>
 #include <tf2/LinearMath/Matrix3x3.h>
 #include <tf2/LinearMath/Quaternion.h>
 #include <tf2_geometry_msgs/tf2_geometry_msgs.h>
 
 #include <nav_msgs/Odometry.h>
-#include <visualization_msgs/Marker.h>
+#include <visualization_msgs/MarkerArray.h>
 
 #include <fub_visual_odometry/VisualOdometryConfig.h>
 
@@ -36,6 +37,7 @@ class VisualOdometry {
     explicit VisualOdometry(ros::NodeHandle &nh);
 
  private:
+
     void onImage(const sensor_msgs::ImageConstPtr &msg, const sensor_msgs::CameraInfoConstPtr &info_msg);
     void onReconfigure(VisualOdometryConfig &config, uint32_t level);
 
@@ -61,7 +63,7 @@ class VisualOdometry {
      * @param point Pixel coordinates
      * @return A pose with the coordinates in the map frame
      */
-    geometry_msgs::Pose getMapCoordinates(const image_geometry::PinholeCameraModel& cameraModel, const cv::Point2d& point) const;
+    geometry_msgs::Point getMapCoordinates(const image_geometry::PinholeCameraModel& cameraModel, const cv::Point2d& point, double height) const;
 
     /**
      * Calculates the yaw orientation of two points in a line using atan(front - rear)
@@ -69,7 +71,16 @@ class VisualOdometry {
      * @param rear The rear point
      * @return yaw orientation
      */
-    double getOrientation(const geometry_msgs::Pose& front, const geometry_msgs::Pose& rear);
+    double getOrientation(const geometry_msgs::Point& front, const geometry_msgs::Point& rear);
+
+    /**
+     * Publishes a visualization marker
+     * @param point The position
+     * @param color Color of the marker
+     * @param id Id of the marker for updates
+     * @param stamp Timestamp
+     */
+    void addMarker(visualization_msgs::MarkerArray& markers, const geometry_msgs::Point& point, const std_msgs::ColorRGBA& color, int id, const ros::Time& stamp);
 
 
     static std::string cvTypeToRosType(int type);
@@ -86,9 +97,11 @@ class VisualOdometry {
     ros::Publisher odomPublisher;
     image_transport::CameraSubscriber imageSubscriber;
 
-    tf2_ros::StaticTransformBroadcaster transformBroadcaster;
+    tf2_ros::StaticTransformBroadcaster staticTransformBroadcaster;
+    tf2_ros::TransformBroadcaster transformBroadcaster;
     tf2_ros::Buffer tfBuffer;
     tf2_ros::TransformListener tfListener;
+    tf2::Vector3 markerTranslation;
 
     VisualOdometryConfig config;
     std::vector<Circle> foundMarkers;
@@ -98,6 +111,7 @@ class VisualOdometry {
     bool foundCamera = false;
     cv::Mat1d rotationMatrix;
     cv::Mat1d translationMatrix;
+    std::vector<cv::Point3d> worldCoordinates;
 };
 
 }

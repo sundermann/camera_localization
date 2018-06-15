@@ -1,4 +1,3 @@
-#include <geos_c.h>
 #include "VisualOdometry.h"
 
 
@@ -11,8 +10,20 @@ VisualOdometry::VisualOdometry(ros::NodeHandle& nh) : tfListener(tfBuffer) {
     markerMaskPublisher = it.advertise("marker_mask", 1);
     carFrontMaskPublisher = it.advertise("car_front_mask", 1);
     carRearMaskPublisher = it.advertise("car_rear_mask", 1);
-    markerPublisher = nh.advertise<visualization_msgs::Marker>("marker", 1);
+    markerPublisher = nh.advertise<visualization_msgs::MarkerArray>("marker", 1);
     odomPublisher = nh.advertise<nav_msgs::Odometry>("odom", 1);
+
+    worldCoordinates = {
+        { nh.param("marker_1_x", 3.44), nh.param("marker_1_y", 0.04), nh.param("marker_1_z", 0.0) },
+        { nh.param("marker_2_x", 5.49), nh.param("marker_2_y", 0.27), nh.param("marker_2_z", 0.0) },
+        { nh.param("marker_3_x", 5.38), nh.param("marker_3_y", 3.79), nh.param("marker_3_z", 0.0) },
+        { nh.param("marker_4_x", 3.40), nh.param("marker_4_y", 3.80), nh.param("marker_4_z", 0.0) }
+    };
+
+    auto x = nh.param("front_marker_translation_x", 0.15);
+    auto y = nh.param("front_marker_translation_y", 0);
+    auto z = nh.param("front_marker_translation_z", 0.15);
+    markerTranslation = tf2::Vector3(x, y, z);
 
     nodeHandle = nh;
 
@@ -105,85 +116,92 @@ void VisualOdometry::onImage(const sensor_msgs::ImageConstPtr &msg, const sensor
     }
 
     if (foundCamera) {
+        visualization_msgs::MarkerArray markers;
+        i = 0;
+        for (const auto& marker : mapMarkers) {
+            auto markerPoint = getMapCoordinates(cameraModel, marker.center, 0.0);
+            std_msgs::ColorRGBA c;
+            c.a = 1.0;
+            c.r = 0.0;
+            c.g = 1.0;
+            c.b = 0.0;
+
+            addMarker(markers, markerPoint, c, ++i, msg->header.stamp);
+        }
+
 
         if (!carFrontMarkers.empty()) {
-            auto frontPoint = getMapCoordinates(cameraModel, carFrontMarkers[0].center);
+            auto frontPoint = getMapCoordinates(cameraModel, carFrontMarkers[0].center, markerTranslation.z());
 
-            visualization_msgs::Marker frontMarker;
-            frontMarker.header.frame_id = "map";
-            frontMarker.header.stamp = ros::Time::now();
-            frontMarker.ns = "car_coordinate";
-            frontMarker.id = 0;
-            frontMarker.type = visualization_msgs::Marker::SPHERE;
-            frontMarker.action = visualization_msgs::Marker::ADD;
-            frontMarker.pose = frontPoint;
-            frontMarker.pose.position.z = 0;
-            frontMarker.pose.orientation.x = 0.0;
-            frontMarker.pose.orientation.y = 0.0;
-            frontMarker.pose.orientation.z = 0.0;
-            frontMarker.pose.orientation.w = 1.0;
-            frontMarker.scale.x = 0.1;
-            frontMarker.scale.y = 0.1;
-            frontMarker.scale.z = 0.1;
-            frontMarker.color.a = 1.0;
-            frontMarker.color.r = 0.0;
-            frontMarker.color.g = 0.0;
-            frontMarker.color.b = 1.0;
-            markerPublisher.publish(frontMarker);
+            std_msgs::ColorRGBA c;
+            c.a = 1.0;
+            c.r = 0.0;
+            c.g = 0.0;
+            c.b = 1.0;
+
+            addMarker(markers, frontPoint, c, 5, msg->header.stamp);
         }
 
         if (!carRearMarkers.empty()) {
-            auto rearPoint = getMapCoordinates(cameraModel, carRearMarkers[0].center);
+            auto rearPoint = getMapCoordinates(cameraModel, carRearMarkers[0].center, markerTranslation.z());
 
-            visualization_msgs::Marker rearMarker;
-            rearMarker.header.frame_id = "map";
-            rearMarker.header.stamp = ros::Time::now();
-            rearMarker.ns = "car_coordinate";
-            rearMarker.id = 1;
-            rearMarker.type = visualization_msgs::Marker::SPHERE;
-            rearMarker.action = visualization_msgs::Marker::ADD;
-            rearMarker.pose = rearPoint;
-            rearMarker.pose.position.z = 0;
-            rearMarker.pose.orientation.x = 0.0;
-            rearMarker.pose.orientation.y = 0.0;
-            rearMarker.pose.orientation.z = 0.0;
-            rearMarker.pose.orientation.w = 1.0;
-            rearMarker.scale.x = 0.1;
-            rearMarker.scale.y = 0.1;
-            rearMarker.scale.z = 0.1;
-            rearMarker.color.a = 1.0;
-            rearMarker.color.r = 1.0;
-            rearMarker.color.g = 0.0;
-            rearMarker.color.b = 0.0;
-            markerPublisher.publish(rearMarker);
+            std_msgs::ColorRGBA c;
+            c.a = 1.0;
+            c.r = 1.0;
+            c.g = 0.0;
+            c.b = 0.0;
+
+            addMarker(markers, rearPoint, c, 6, msg->header.stamp);
         }
 
+        markerPublisher.publish(markers);
+
         if (!carFrontMarkers.empty() && !carRearMarkers.empty()) {
-            auto frontPoint = getMapCoordinates(cameraModel, carFrontMarkers[0].center);
-            auto rearPoint = getMapCoordinates(cameraModel, carRearMarkers[0].center);
+            auto frontPoint = getMapCoordinates(cameraModel, carFrontMarkers[0].center, markerTranslation.z());
+            auto rearPoint = getMapCoordinates(cameraModel, carRearMarkers[0].center, markerTranslation.z());
 
-            nav_msgs::Odometry odometry;
-            odometry.header.frame_id = "map";
-            odometry.header.stamp = ros::Time::now();
-            odometry.pose.pose = frontPoint;
-            odometry.pose.pose.position.z = 0;
             auto yaw = getOrientation(frontPoint, rearPoint);
-
             geometry_msgs::Quaternion orientation;
             orientation.x = 0;
             orientation.y = 0;
             orientation.z = sin(yaw / 2);
             orientation.w = cos(yaw / 2);
 
-            odometry.pose.pose.orientation = orientation;
+            tf2::Vector3 cameraTranslation(frontPoint.x, frontPoint.y, frontPoint.z);
+            geometry_msgs::TransformStamped carFrontMarkerTransform;
+            carFrontMarkerTransform.header = msg->header;
+            carFrontMarkerTransform.header.stamp = msg->header.stamp;
+            carFrontMarkerTransform.header.frame_id = "map";
+            carFrontMarkerTransform.child_frame_id = "car_front_marker";
+            geometry_msgs::Vector3 m;
+            tf2::convert(cameraTranslation, m);
+            carFrontMarkerTransform.transform.translation = m;
+            carFrontMarkerTransform.transform.rotation = orientation;
+            transformBroadcaster.sendTransform(carFrontMarkerTransform);
 
+            geometry_msgs::TransformStamped carBaseLinkTransform;
+            carBaseLinkTransform.header = msg->header;
+            carBaseLinkTransform.header.stamp = msg->header.stamp;
+            carBaseLinkTransform.header.frame_id = "car_front_marker";
+            carBaseLinkTransform.child_frame_id = "base_link";
+            auto baseLinkTranslation = markerTranslation * -1;
+            geometry_msgs::Vector3 baseLinkTranslationVec;
+            geometry_msgs::Quaternion identity;
+            tf2::convert(baseLinkTranslation, baseLinkTranslationVec);
+            tf2::convert(tf2::Quaternion::getIdentity(), identity);
+            carBaseLinkTransform.transform.translation = baseLinkTranslationVec;
+            carBaseLinkTransform.transform.rotation = identity;
+            transformBroadcaster.sendTransform(carBaseLinkTransform);
+
+            nav_msgs::Odometry odometry;
+            odometry.header.frame_id = "map";
+            odometry.child_frame_id = "base_link";
+            odometry.header.stamp = msg->header.stamp;
+            odometry.pose.pose.orientation = orientation;
+            odometry.pose.pose.position = frontPoint;
             odomPublisher.publish(odometry);
         }
     } else if (mapMarkers.size() == 4) {
-        std::vector<cv::Point3f> worldCoordinates = {
-            {3.44, 0.04, 0}, {5.49, 0.27, 0}, {5.38, 3.79, 0}, {3.40, 3.80, 0}
-        };
-
         cv::Mat1d rvec = cv::Mat1d::zeros(3, 1);
         translationMatrix = cv::Mat1d::zeros(3, 1);
 
@@ -210,7 +228,7 @@ void VisualOdometry::onImage(const sensor_msgs::ImageConstPtr &msg, const sensor
 
         geometry_msgs::TransformStamped cameraTransform;
         cameraTransform.header = msg->header;
-        cameraTransform.header.stamp = ros::Time::now();
+        cameraTransform.header.stamp = msg->header.stamp;
         cameraTransform.header.frame_id = "map";
         cameraTransform.child_frame_id = "cam_left";
         geometry_msgs::Vector3 m;
@@ -221,7 +239,7 @@ void VisualOdometry::onImage(const sensor_msgs::ImageConstPtr &msg, const sensor
         cameraRotation.getRotation(tfq);
         tf2::convert(tfq, q);
         cameraTransform.transform.rotation = q;
-        transformBroadcaster.sendTransform(cameraTransform);
+        staticTransformBroadcaster.sendTransform(cameraTransform);
 
         foundCamera = true;
     }
@@ -232,15 +250,15 @@ void VisualOdometry::onImage(const sensor_msgs::ImageConstPtr &msg, const sensor
     markerMaskPublisher.publish(cvMapMarkerMaskImage->toImageMsg());
 }
 
-double VisualOdometry::getOrientation(const geometry_msgs::Pose& front, const geometry_msgs::Pose& rear) {
-    return atan2(front.position.y - rear.position.y, front.position.x - rear.position.x);
+double VisualOdometry::getOrientation(const geometry_msgs::Point& front, const geometry_msgs::Point& rear) {
+    return atan2(front.y - rear.y, front.x - rear.x);
 }
 
-geometry_msgs::Pose VisualOdometry::getMapCoordinates(const image_geometry::PinholeCameraModel& cameraModel, const cv::Point2d& point) const {
+geometry_msgs::Point VisualOdometry::getMapCoordinates(const image_geometry::PinholeCameraModel& cameraModel, const cv::Point2d& point, double height) const {
     auto rectifiedPoint = cameraModel.rectifyPoint(point);
 
     cv::Mat1d A(3,3);
-    auto markerCameraHeight = translationMatrix(2, 0) - 0.15;
+    auto markerCameraHeight = translationMatrix(2, 0) - height;
     A << markerCameraHeight, 0, -translationMatrix(0, 0), 0, markerCameraHeight, -translationMatrix(1, 0), 0, 0, -1;
     cv::Mat1d mat = A * rotationMatrix * cv::Mat(cameraModel.intrinsicMatrix().inv());
     cv::Mat1d p(3,1);
@@ -249,20 +267,20 @@ geometry_msgs::Pose VisualOdometry::getMapCoordinates(const image_geometry::Pinh
     cv::Mat1d p2 = mat * p;
     p2 /= p2(2,0);
 
-    geometry_msgs::Pose pose;
-    pose.position.x = p2[0][0];
-    pose.position.y = p2[1][0];
-    pose.position.z = 0;
+    geometry_msgs::Point mapPoint;
+    mapPoint.x = p2[0][0];
+    mapPoint.y = p2[1][0];
+    mapPoint.z = height;
 
-    return pose;
+    return mapPoint;
 }
 
 void VisualOdometry::findContours(const cv::Mat &image, cv::OutputArrayOfArrays contours) const {
-    cv::Mat element = cv::getStructuringElement( cv::MORPH_RECT,
-                                         cv::Size(3,3));
-    cv::erode(image, image, element);
-    cv::dilate(image, image, element);
-    cv::findContours(image, contours, cv::RETR_EXTERNAL, cv::CHAIN_APPROX_NONE);
+    cv::Mat kernel = cv::getStructuringElement( cv::MORPH_RECT, cv::Size(3,3));
+
+    cv::erode(image, image, kernel);
+    cv::dilate(image, image, kernel);
+    cv::findContours(image, contours, cv::RETR_LIST, cv::CHAIN_APPROX_NONE);
 }
 
 void VisualOdometry::findBestMarkers(const cv::Mat &image, std::vector<Circle> &markers, int n) const {
@@ -280,14 +298,33 @@ void VisualOdometry::findBestMarkers(const cv::Mat &image, std::vector<Circle> &
     for(auto it = contoursByArea.rbegin(); it != contoursByArea.rend(); ++it, i++) {
         cv::Point2f center;
         float radius;
+        cv::RotatedRect e = cv::fitEllipse(it->second);
         cv::minEnclosingCircle(it->second, center, radius);
         markers.emplace_back(center, radius);
-        cv::circle(image, center, static_cast<int>(radius), cv::Scalar(255, 255, 255), 2);
 
         if (i >= n) {
             break;
         }
     }
+}
+
+void VisualOdometry::addMarker(visualization_msgs::MarkerArray& markers, const geometry_msgs::Point& point, const std_msgs::ColorRGBA& color, int id, const ros::Time& stamp) {
+    visualization_msgs::Marker marker;
+    marker.header.frame_id = "map";
+    marker.header.stamp = stamp;
+    marker.id = id;
+    marker.type = visualization_msgs::Marker::SPHERE;
+    marker.action = visualization_msgs::Marker::ADD;
+    marker.pose.position = point;
+    marker.pose.orientation.x = 0.0;
+    marker.pose.orientation.y = 0.0;
+    marker.pose.orientation.z = 0.0;
+    marker.pose.orientation.w = 1.0;
+    marker.scale.x = 0.1;
+    marker.scale.y = 0.1;
+    marker.scale.z = 0.1;
+    marker.color = color;
+    markers.markers.push_back(marker);
 }
 
 std::string VisualOdometry::cvTypeToRosType(int type) {
@@ -312,4 +349,5 @@ std::string VisualOdometry::cvTypeToRosType(int type) {
 
     return r;
 }
+
 }
