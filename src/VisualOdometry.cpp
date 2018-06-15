@@ -212,7 +212,7 @@ void VisualOdometry::onImage(const sensor_msgs::ImageConstPtr &msg, const sensor
                      rvec,
                      translationMatrix,
                      false,
-                     cv::SOLVEPNP_EPNP);
+                     cv::SOLVEPNP_ITERATIVE);
 
         rotationMatrix = cv::Mat1d::zeros(3, 3);
         cv::Rodrigues(rvec, rotationMatrix);
