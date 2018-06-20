@@ -7,18 +7,11 @@ VisualOdometry::VisualOdometry(ros::NodeHandle& nh) : tfListener(tfBuffer) {
     image_transport::ImageTransport it(nh);
     imageSubscriber = it.subscribeCamera("/tracking/cam_left/image_raw", 1, &VisualOdometry::onImage, this, image_transport::TransportHints("compressed"));
     detectionPublisher = it.advertise("detection", 1);
-    markerMaskPublisher = it.advertise("marker_mask", 1);
-    carFrontMaskPublisher = it.advertise("car_front_mask", 1);
-    carRearMaskPublisher = it.advertise("car_rear_mask", 1);
     markerPublisher = nh.advertise<visualization_msgs::MarkerArray>("marker", 1);
     odomPublisher = nh.advertise<nav_msgs::Odometry>("odom", 1);
 
-    worldCoordinates = {
-        { nh.param("marker_1_x", 3.44), nh.param("marker_1_y", 0.04), nh.param("marker_1_z", 0.0) },
-        { nh.param("marker_2_x", 5.49), nh.param("marker_2_y", 0.27), nh.param("marker_2_z", 0.0) },
-        { nh.param("marker_3_x", 5.38), nh.param("marker_3_y", 3.79), nh.param("marker_3_z", 0.0) },
-        { nh.param("marker_4_x", 3.40), nh.param("marker_4_y", 3.80), nh.param("marker_4_z", 0.0) }
-    };
+    mapDictionary = cv::aruco::getPredefinedDictionary(cv::aruco::DICT_6X6_250);
+    carDictionary = cv::aruco::getPredefinedDictionary(cv::aruco::DICT_4X4_50);
 
     auto x = nh.param("front_marker_translation_x", 0.15);
     auto y = nh.param("front_marker_translation_y", 0);
@@ -38,18 +31,18 @@ void VisualOdometry::onReconfigure(VisualOdometryConfig &config, uint32_t level)
     foundCamera = false;
 }
 
+void VisualOdometry::onMap(const nav_msgs::OccupancyGridConstPtr &msg) {
+    map = msg;
+}
+
+
 void VisualOdometry::onImage(const sensor_msgs::ImageConstPtr &msg, const sensor_msgs::CameraInfoConstPtr& info_msg) {
     cv_bridge::CvImagePtr cvDetectionImage;
-    cv_bridge::CvImagePtr cvMapMarkerMaskImage;
-    cv_bridge::CvImagePtr cvCarFrontMarkerImage;
-    cv_bridge::CvImagePtr cvCarRearMarkerImage;
 
+    cv::waitKey(1);
     try
     {
         cvDetectionImage = cv_bridge::toCvCopy(msg, sensor_msgs::image_encodings::BGR8);
-        cvMapMarkerMaskImage = cv_bridge::toCvCopy(msg, sensor_msgs::image_encodings::BGR8);
-        cvCarFrontMarkerImage = cv_bridge::toCvCopy(msg, sensor_msgs::image_encodings::BGR8);
-        cvCarRearMarkerImage = cv_bridge::toCvCopy(msg, sensor_msgs::image_encodings::BGR8);
     }
     catch (cv_bridge::Exception& e)
     {
@@ -60,194 +53,183 @@ void VisualOdometry::onImage(const sensor_msgs::ImageConstPtr &msg, const sensor
     image_geometry::PinholeCameraModel cameraModel;
     cameraModel.fromCameraInfo(info_msg);
 
-    // separate map makers
-    cv::cvtColor(cvMapMarkerMaskImage->image, cvMapMarkerMaskImage->image, cv::COLOR_BGR2HSV);
-    auto minMarkerHSV = cv::Scalar(config.map_marker_min_h, config.map_marker_min_s, config.map_marker_min_v);
-    auto maxMarkerHSV = cv::Scalar(config.map_marker_max_h, config.map_marker_max_s, config.map_marker_max_v);
-    cv::inRange(cvMapMarkerMaskImage->image, minMarkerHSV, maxMarkerHSV, cvMapMarkerMaskImage->image);
-    cvMapMarkerMaskImage->encoding = cvTypeToRosType(cvMapMarkerMaskImage->image.type());
-    std::vector<std::vector<cv::Point>> mapMarkerContours;
-    findContours(cvMapMarkerMaskImage->image, mapMarkerContours);
+    cv::Ptr<cv::aruco::DetectorParameters> params = cv::aruco::DetectorParameters::create();
 
-    // separate front car markers
-    cv::cvtColor(cvCarFrontMarkerImage->image, cvCarFrontMarkerImage->image, cv::COLOR_BGR2HSV);
-    auto minFrontCarHSV = cv::Scalar(config.car_front_marker_min_h, config.car_front_marker_min_s, config.car_front_marker_min_v);
-    auto maxFrontCarHSV = cv::Scalar(config.car_front_marker_max_h, config.car_front_marker_max_s, config.car_front_marker_max_v);
-    cv::inRange(cvCarFrontMarkerImage->image, minFrontCarHSV, maxFrontCarHSV, cvCarFrontMarkerImage->image);
-    cvCarFrontMarkerImage->encoding = cvTypeToRosType(cvCarFrontMarkerImage->image.type());
-    std::vector<std::vector<cv::Point>> carFrontMarkerContours;
-    findContours(cvCarFrontMarkerImage->image, carFrontMarkerContours);
+    std::vector<int> carMarkerIds;
+    std::vector<std::vector<cv::Point2f>> carMarkerCorners;
+    cv::aruco::detectMarkers(cvDetectionImage->image, carDictionary, carMarkerCorners, carMarkerIds, params,
+        cv::noArray(), cameraModel.intrinsicMatrix(), cameraModel.distortionCoeffs());
 
-    // separate rear car markers
-    cv::cvtColor(cvCarRearMarkerImage->image, cvCarRearMarkerImage->image, cv::COLOR_BGR2HSV);
-    auto minRearCarHSV = cv::Scalar(config.car_rear_marker_min_h, config.car_rear_marker_min_s, config.car_rear_marker_min_v);
-    auto maxRearCarHSV = cv::Scalar(config.car_rear_marker_max_h, config.car_rear_marker_max_s, config.car_rear_marker_max_v);
-    cv::inRange(cvCarRearMarkerImage->image, minRearCarHSV, maxRearCarHSV, cvCarRearMarkerImage->image);
-    cvCarRearMarkerImage->encoding = cvTypeToRosType(cvCarRearMarkerImage->image.type());
-    std::vector<std::vector<cv::Point>> carRearMarkerContours;
-    findContours(cvCarRearMarkerImage->image, carRearMarkerContours);
-
-    std::vector<Circle> carFrontMarkers;
-    findBestMarkers(cvCarFrontMarkerImage->image, carFrontMarkers, 1);
-    for (const auto& marker : carFrontMarkers) {
-        cv::circle(cvDetectionImage->image, marker.center, static_cast<int>(marker.radius), cv::Scalar(255, 255, 255), 2);
+    if (!mapMarkerIds.empty()) {
+        cv::aruco::drawDetectedMarkers(cvDetectionImage->image, mapMarkerCorners, mapMarkerIds);
+        cv::aruco::drawDetectedMarkers(cvDetectionImage->image, carMarkerCorners, carMarkerIds);
     }
 
-    std::vector<Circle> carRearMarkers;
-    findBestMarkers(cvCarRearMarkerImage->image, carRearMarkers, 1);
-    for (const auto& marker : carRearMarkers) {
-        cv::circle(cvDetectionImage->image, marker.center, static_cast<int>(marker.radius), cv::Scalar(255, 255, 255), 2);
-    }
+    if (!foundCamera)  {
+        cv::aruco::detectMarkers(cvDetectionImage->image, mapDictionary, mapMarkerCorners, mapMarkerIds, params,
+            cv::noArray(), cameraModel.intrinsicMatrix(), cameraModel.distortionCoeffs());
 
-    std::vector<Circle> mapMarkers;
-    std::vector<cv::Point2f> imageCoordinates;
-    findBestMarkers(cvMapMarkerMaskImage->image, mapMarkers, 4);
+        cv::Mat1d rvec = cv::Mat1d::zeros(3, 1);
+        translationMatrix = cv::Mat1d::zeros(3, 1);
 
-    std::sort( mapMarkers.begin( ), mapMarkers.end( ), [ ]( const Circle& lhs, const Circle& rhs )
-    {
-        return lhs.center.x < rhs.center.x;
-    });
+        std::vector<cv::Point3f> worldCoordinates;
+        std::vector<cv::Point2f> imageCoordinates;
+        int i = 0;
+        for (auto&& markerId : mapMarkerIds) {
+            float x, y, z;
+            auto has_x = nodeHandle.getParam(cv::format("marker_%d_x", markerId), x);
+            auto has_y = nodeHandle.getParam(cv::format("marker_%d_y", markerId), y);
+            auto has_z = nodeHandle.getParam(cv::format("marker_%d_z", markerId), z);
 
-    int i =1;
-    for (const auto& marker : mapMarkers) {
-        imageCoordinates.emplace_back(marker.center);
-        cv::circle(cvDetectionImage->image, marker.center, static_cast<int>(marker.radius), cv::Scalar(255, 255, 255), 2);
-        cv::putText(cvDetectionImage->image, cv::format("%d", i++), marker.center, cv::FONT_HERSHEY_PLAIN, 12, cv::Scalar(255, 255, 255), 2);
+            if (has_x && has_y && has_z) {
+                worldCoordinates.emplace_back(x, y, z);
+                auto marker = mapMarkerCorners[i];
+                auto rect= cv::boundingRect(marker);
+
+                // This is probably not so accurate
+                imageCoordinates.emplace_back(rect.x + rect.width / 2.0f, rect.y + rect.height / 2.0f);
+            }
+
+            i++;
+        }
+
+        if (mapMarkerIds.size() >= 4) {
+
+            cv::solvePnP(worldCoordinates,
+                         imageCoordinates,
+                         cameraModel.intrinsicMatrix(),
+                         cameraModel.distortionCoeffs(),
+                         rvec,
+                         translationMatrix,
+                         false,
+                         cv::SOLVEPNP_ITERATIVE);
+
+            rotationMatrix = cv::Mat1d::zeros(3, 3);
+            cv::Rodrigues(rvec, rotationMatrix);
+
+            rotationMatrix = rotationMatrix.t();
+            translationMatrix = -rotationMatrix * translationMatrix;
+
+            tf2::Matrix3x3 cameraRotation(rotationMatrix(0, 0), rotationMatrix(0, 1), rotationMatrix(0, 2),
+                                          rotationMatrix(1, 0), rotationMatrix(1, 1), rotationMatrix(1, 2),
+                                          rotationMatrix(2, 0), rotationMatrix(2, 1), rotationMatrix(2, 2));
+
+            tf2::Vector3 cameraTranslation(translationMatrix(0, 0), translationMatrix(1, 0), translationMatrix(2, 0));
+
+            geometry_msgs::TransformStamped cameraTransform;
+            cameraTransform.header = msg->header;
+            cameraTransform.header.stamp = msg->header.stamp;
+            cameraTransform.header.frame_id = "map";
+            cameraTransform.child_frame_id = "cam_left";
+            geometry_msgs::Vector3 m;
+            tf2::convert(cameraTranslation, m);
+            cameraTransform.transform.translation = m;
+            geometry_msgs::Quaternion q;
+            tf2::Quaternion tfq;
+            cameraRotation.getRotation(tfq);
+            tf2::convert(tfq, q);
+            cameraTransform.transform.rotation = q;
+            staticTransformBroadcaster.sendTransform(cameraTransform);
+
+            foundCamera = true;
+        }
     }
 
     if (foundCamera) {
         visualization_msgs::MarkerArray markers;
-        i = 0;
-        for (const auto& marker : mapMarkers) {
-            auto markerPoint = getMapCoordinates(cameraModel, marker.center, 0.0);
-            std_msgs::ColorRGBA c;
-            c.a = 1.0;
-            c.r = 0.0;
-            c.g = 1.0;
-            c.b = 0.0;
 
-            addMarker(markers, markerPoint, c, ++i, msg->header.stamp);
-        }
+        if (!carMarkerCorners.empty()) {
+            std::vector<cv::Vec3d> rvec, tvec;
+            cv::aruco::estimatePoseSingleMarkers(carMarkerCorners, 0.05, cameraModel.intrinsicMatrix(), cameraModel.distortionCoeffs(), rvec, tvec);
 
+            for (int i = 0; i < carMarkerCorners.size(); i++) {
+                std::vector<cv::Point3f> pts = { cv::Point3f(0, 0, 0), cv::Point3f(1, 0, 0)};
+                std::vector<cv::Point2f > imagePoints;
+                cv::projectPoints(pts, rvec[i], tvec[i], cameraModel.intrinsicMatrix(), cameraModel.distortionCoeffs(), imagePoints);
+                cv::line(cvDetectionImage->image, imagePoints[0], imagePoints[1], cv::Scalar(0, 0, 255), 3);
 
-        if (!carFrontMarkers.empty()) {
-            auto frontPoint = getMapCoordinates(cameraModel, carFrontMarkers[0].center, markerTranslation.z());
+                /*cv::aruco::drawAxis(cvDetectionImage->image,
+                                    cameraModel.intrinsicMatrix(),
+                                    cameraModel.distortionCoeffs(),
+                                    rvec[i],
+                                    tvec[i],
+                                    0.05);
+                */
+                auto p1 = getMapCoordinates(cameraModel, carMarkerCorners[i][0], markerTranslation.z());
+                auto p2 = getMapCoordinates(cameraModel, carMarkerCorners[i][1], markerTranslation.z());
+                auto p3 = getMapCoordinates(cameraModel, carMarkerCorners[i][2], markerTranslation.z());
+                auto p4 = getMapCoordinates(cameraModel, carMarkerCorners[i][3], markerTranslation.z());
 
-            std_msgs::ColorRGBA c;
-            c.a = 1.0;
-            c.r = 0.0;
-            c.g = 0.0;
-            c.b = 1.0;
+                cv::Mat1d rod;
+                cv::Rodrigues(rvec[i], rod);
+                auto yaw = atan2(rod(0,0), rod(1,0));
 
-            addMarker(markers, frontPoint, c, 5, msg->header.stamp);
-        }
+                std::cout << yaw << std::endl;
 
-        if (!carRearMarkers.empty()) {
-            auto rearPoint = getMapCoordinates(cameraModel, carRearMarkers[0].center, markerTranslation.z());
+                std_msgs::ColorRGBA c;
+                c.a = 1.0;
+                c.r = 0.0;
+                c.g = 0.0;
+                c.b = 1.0;
 
-            std_msgs::ColorRGBA c;
-            c.a = 1.0;
-            c.r = 1.0;
-            c.g = 0.0;
-            c.b = 0.0;
+                addMarker(markers, p1, c, i, msg->header.stamp);
+                addMarker(markers, p2, c, i + 1, msg->header.stamp);
+                addMarker(markers, p3, c, i + 2, msg->header.stamp);
+                addMarker(markers, p4, c, i + 3, msg->header.stamp);
 
-            addMarker(markers, rearPoint, c, 6, msg->header.stamp);
+                geometry_msgs::Quaternion orientation;
+                orientation.x = 0;
+                orientation.y = 0;
+                orientation.z = sin(yaw / 2.0);
+                orientation.w = cos(yaw / 2.0);
+
+                auto rect= cv::boundingRect(carMarkerCorners[i]);
+
+                // This is probably not so accurate
+                geometry_msgs::Point frontPoint = getMapCoordinates(cameraModel, cv::Point2d(rect.x +rect.width /2.0, rect.y + rect.height / 2.0), 0.15);
+
+                tf2::Vector3 cameraTranslation(frontPoint.x, frontPoint.y, frontPoint.z);
+                geometry_msgs::TransformStamped carFrontMarkerTransform;
+                carFrontMarkerTransform.header = msg->header;
+                carFrontMarkerTransform.header.stamp = msg->header.stamp;
+                carFrontMarkerTransform.header.frame_id = "map";
+                carFrontMarkerTransform.child_frame_id = "car_front_marker";
+                geometry_msgs::Vector3 m;
+                tf2::convert(cameraTranslation, m);
+                carFrontMarkerTransform.transform.translation = m;
+                carFrontMarkerTransform.transform.rotation = orientation;
+                transformBroadcaster.sendTransform(carFrontMarkerTransform);
+
+                geometry_msgs::TransformStamped carBaseLinkTransform;
+                carBaseLinkTransform.header = msg->header;
+                carBaseLinkTransform.header.stamp = msg->header.stamp;
+                carBaseLinkTransform.header.frame_id = "car_front_marker";
+                carBaseLinkTransform.child_frame_id = "base_link";
+                auto baseLinkTranslation = markerTranslation * -1;
+                geometry_msgs::Vector3 baseLinkTranslationVec;
+                geometry_msgs::Quaternion identity;
+                tf2::convert(baseLinkTranslation, baseLinkTranslationVec);
+                tf2::convert(tf2::Quaternion::getIdentity(), identity);
+                carBaseLinkTransform.transform.translation = baseLinkTranslationVec;
+                carBaseLinkTransform.transform.rotation = identity;
+                transformBroadcaster.sendTransform(carBaseLinkTransform);
+
+                nav_msgs::Odometry odometry;
+                odometry.header.frame_id = "map";
+                odometry.child_frame_id = "base_link";
+                odometry.header.stamp = msg->header.stamp;
+                odometry.pose.pose.orientation = orientation;
+                odometry.pose.pose.position = frontPoint;
+                odomPublisher.publish(odometry);
+
+            }
         }
 
         markerPublisher.publish(markers);
 
-        if (!carFrontMarkers.empty() && !carRearMarkers.empty()) {
-            auto frontPoint = getMapCoordinates(cameraModel, carFrontMarkers[0].center, markerTranslation.z());
-            auto rearPoint = getMapCoordinates(cameraModel, carRearMarkers[0].center, markerTranslation.z());
-
-            auto yaw = getOrientation(frontPoint, rearPoint);
-            geometry_msgs::Quaternion orientation;
-            orientation.x = 0;
-            orientation.y = 0;
-            orientation.z = sin(yaw / 2);
-            orientation.w = cos(yaw / 2);
-
-            tf2::Vector3 cameraTranslation(frontPoint.x, frontPoint.y, frontPoint.z);
-            geometry_msgs::TransformStamped carFrontMarkerTransform;
-            carFrontMarkerTransform.header = msg->header;
-            carFrontMarkerTransform.header.stamp = msg->header.stamp;
-            carFrontMarkerTransform.header.frame_id = "map";
-            carFrontMarkerTransform.child_frame_id = "car_front_marker";
-            geometry_msgs::Vector3 m;
-            tf2::convert(cameraTranslation, m);
-            carFrontMarkerTransform.transform.translation = m;
-            carFrontMarkerTransform.transform.rotation = orientation;
-            transformBroadcaster.sendTransform(carFrontMarkerTransform);
-
-            geometry_msgs::TransformStamped carBaseLinkTransform;
-            carBaseLinkTransform.header = msg->header;
-            carBaseLinkTransform.header.stamp = msg->header.stamp;
-            carBaseLinkTransform.header.frame_id = "car_front_marker";
-            carBaseLinkTransform.child_frame_id = "base_link";
-            auto baseLinkTranslation = markerTranslation * -1;
-            geometry_msgs::Vector3 baseLinkTranslationVec;
-            geometry_msgs::Quaternion identity;
-            tf2::convert(baseLinkTranslation, baseLinkTranslationVec);
-            tf2::convert(tf2::Quaternion::getIdentity(), identity);
-            carBaseLinkTransform.transform.translation = baseLinkTranslationVec;
-            carBaseLinkTransform.transform.rotation = identity;
-            transformBroadcaster.sendTransform(carBaseLinkTransform);
-
-            nav_msgs::Odometry odometry;
-            odometry.header.frame_id = "map";
-            odometry.child_frame_id = "base_link";
-            odometry.header.stamp = msg->header.stamp;
-            odometry.pose.pose.orientation = orientation;
-            odometry.pose.pose.position = frontPoint;
-            odomPublisher.publish(odometry);
-        }
-    } else if (mapMarkers.size() == 4) {
-        cv::Mat1d rvec = cv::Mat1d::zeros(3, 1);
-        translationMatrix = cv::Mat1d::zeros(3, 1);
-
-        cv::solvePnP(worldCoordinates,
-                     imageCoordinates,
-                     cameraModel.intrinsicMatrix(),
-                     cameraModel.distortionCoeffs(),
-                     rvec,
-                     translationMatrix,
-                     false,
-                     cv::SOLVEPNP_ITERATIVE);
-
-        rotationMatrix = cv::Mat1d::zeros(3, 3);
-        cv::Rodrigues(rvec, rotationMatrix);
-
-        rotationMatrix = rotationMatrix.t();
-        translationMatrix = -rotationMatrix * translationMatrix;
-
-        tf2::Matrix3x3 cameraRotation(rotationMatrix(0, 0), rotationMatrix(0, 1), rotationMatrix(0, 2),
-                                      rotationMatrix(1, 0), rotationMatrix(1, 1), rotationMatrix(1, 2),
-                                      rotationMatrix(2, 0), rotationMatrix(2, 1), rotationMatrix(2, 2));
-
-        tf2::Vector3 cameraTranslation(translationMatrix(0, 0), translationMatrix(1, 0), translationMatrix(2, 0));
-
-        geometry_msgs::TransformStamped cameraTransform;
-        cameraTransform.header = msg->header;
-        cameraTransform.header.stamp = msg->header.stamp;
-        cameraTransform.header.frame_id = "map";
-        cameraTransform.child_frame_id = "cam_left";
-        geometry_msgs::Vector3 m;
-        tf2::convert(cameraTranslation, m);
-        cameraTransform.transform.translation = m;
-        geometry_msgs::Quaternion q;
-        tf2::Quaternion tfq;
-        cameraRotation.getRotation(tfq);
-        tf2::convert(tfq, q);
-        cameraTransform.transform.rotation = q;
-        staticTransformBroadcaster.sendTransform(cameraTransform);
-
-        foundCamera = true;
     }
 
     detectionPublisher.publish(cvDetectionImage->toImageMsg());
-    carFrontMaskPublisher.publish(cvCarFrontMarkerImage->toImageMsg());
-    carRearMaskPublisher.publish(cvCarRearMarkerImage->toImageMsg());
-    markerMaskPublisher.publish(cvMapMarkerMaskImage->toImageMsg());
 }
 
 double VisualOdometry::getOrientation(const geometry_msgs::Point& front, const geometry_msgs::Point& rear) {

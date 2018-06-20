@@ -7,20 +7,28 @@
         <param name="front_marker_translation_y" value="0" />
         <param name="front_marker_translation_z" value="0.15" />
 
-        <param name="marker_1_x" value="3.44" />
-        <param name="marker_1_y" value="0.04" />
-        <param name="marker_1_z" value="0.0" />
+        <param name="marker_0_x" value="5.70" />
+        <param name="marker_0_y" value="0.21" />
+        <param name="marker_0_z" value="0.0" />
 
-        <param name="marker_2_x" value="5.49" />
-        <param name="marker_2_y" value="0.27" />
+        <param name="marker_2_x" value="4.00" />
+        <param name="marker_2_y" value="1.30" />
         <param name="marker_2_z" value="0.0" />
 
-        <param name="marker_3_x" value="5.38" />
-        <param name="marker_3_y" value="3.79" />
+        <param name="marker_3_x" value="3.35" />
+        <param name="marker_3_y" value="3.775" />
         <param name="marker_3_z" value="0.0" />
 
-        <param name="marker_4_x" value="3.40" />
-        <param name="marker_4_y" value="3.80" />
+        <param name="marker_4_x" value="4.89" />
+        <param name="marker_4_y" value="2.51" />
         <param name="marker_4_z" value="0.0" />
+
+        <param name="marker_6_x" value="5.49" />
+        <param name="marker_6_y" value="3.76" />
+        <param name="marker_6_z" value="0.0" />
+
+        <param name="marker_9_x" value="3.64" />
+        <param name="marker_9_y" value="2.615" />
+        <param name="marker_9_z" value="0.0" />
     </node>
 </launch>

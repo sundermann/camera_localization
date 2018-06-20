@@ -9,6 +9,7 @@
 #include <tf2_geometry_msgs/tf2_geometry_msgs.h>
 
 #include <nav_msgs/Odometry.h>
+#include <nav_msgs/OccupancyGrid.h>
 #include <visualization_msgs/MarkerArray.h>
 
 #include <fub_visual_odometry/VisualOdometryConfig.h>
@@ -21,6 +22,7 @@
 #include <opencv2/opencv.hpp>
 #include <opencv2/imgproc/imgproc.hpp>
 #include <opencv2/highgui/highgui.hpp>
+#include <opencv2/aruco/charuco.hpp>
 #include <image_geometry/pinhole_camera_model.h>
 
 namespace fub_visual_odometry {
@@ -38,6 +40,7 @@ class VisualOdometry {
 
  private:
 
+    void onMap(const nav_msgs::OccupancyGridConstPtr &msg);
     void onImage(const sensor_msgs::ImageConstPtr &msg, const sensor_msgs::CameraInfoConstPtr &info_msg);
     void onReconfigure(VisualOdometryConfig &config, uint32_t level);
 
@@ -65,6 +68,7 @@ class VisualOdometry {
      */
     geometry_msgs::Point getMapCoordinates(const image_geometry::PinholeCameraModel& cameraModel, const cv::Point2d& point, double height) const;
 
+
     /**
      * Calculates the yaw orientation of two points in a line using atan(front - rear)
      * @param front The front point
@@ -89,13 +93,12 @@ class VisualOdometry {
     dynamic_reconfigure::Server<VisualOdometryConfig> server;
     dynamic_reconfigure::Server<VisualOdometryConfig>::CallbackType f;
 
-    image_transport::Publisher markerMaskPublisher;
-    image_transport::Publisher carFrontMaskPublisher;
-    image_transport::Publisher carRearMaskPublisher;
     image_transport::Publisher detectionPublisher;
     ros::Publisher markerPublisher;
     ros::Publisher odomPublisher;
+
     image_transport::CameraSubscriber imageSubscriber;
+    ros::Subscriber mapSubscriber;
 
     tf2_ros::StaticTransformBroadcaster staticTransformBroadcaster;
     tf2_ros::TransformBroadcaster transformBroadcaster;
@@ -104,14 +107,17 @@ class VisualOdometry {
     tf2::Vector3 markerTranslation;
 
     VisualOdometryConfig config;
-    std::vector<Circle> foundMarkers;
-    geometry_msgs::TransformStamped transformation;
+    cv::Ptr<cv::aruco::Dictionary> mapDictionary;
+    cv::Ptr<cv::aruco::Dictionary> carDictionary;
 
+    std::vector<int> mapMarkerIds;
+    std::vector<std::vector<cv::Point2f>> mapMarkerCorners;
+
+    nav_msgs::OccupancyGridConstPtr map;
 
     bool foundCamera = false;
     cv::Mat1d rotationMatrix;
     cv::Mat1d translationMatrix;
-    std::vector<cv::Point3d> worldCoordinates;
 };
 
 }
