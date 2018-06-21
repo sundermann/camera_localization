@@ -3,13 +3,17 @@
 
     <node name="fub_visual_odometry" pkg="fub_visual_odometry" type="fub_visual_odometry_node">
         <!-- car marker translation in respect to base_link -->
-        <param name="front_marker_translation_x" value="0.15" />
+        <param name="front_marker_translation_x" value="0.20" />
         <param name="front_marker_translation_y" value="0" />
-        <param name="front_marker_translation_z" value="0.15" />
+        <param name="front_marker_translation_z" value="0.19" />
 
         <param name="marker_0_x" value="5.70" />
         <param name="marker_0_y" value="0.21" />
         <param name="marker_0_z" value="0.0" />
+
+        <param name="marker_1_x" value="2.56" />
+        <param name="marker_1_y" value="2.745" />
+        <param name="marker_1_z" value="0.0" />
 
         <param name="marker_2_x" value="4.00" />
         <param name="marker_2_y" value="1.30" />
@@ -23,9 +27,21 @@
         <param name="marker_4_y" value="2.51" />
         <param name="marker_4_z" value="0.0" />
 
+        <param name="marker_5_x" value="1.265" />
+        <param name="marker_5_y" value="2.50" />
+        <param name="marker_5_z" value="0.0" />
+
         <param name="marker_6_x" value="5.49" />
         <param name="marker_6_y" value="3.76" />
         <param name="marker_6_z" value="0.0" />
+
+        <param name="marker_7_x" value="1.58" />
+        <param name="marker_7_y" value="1.02" />
+        <param name="marker_7_z" value="0.0" />
+
+        <param name="marker_8_x" value="2.57" />
+        <param name="marker_8_y" value="1.494" />
+        <param name="marker_8_z" value="0.0" />
 
         <param name="marker_9_x" value="3.64" />
         <param name="marker_9_y" value="2.615" />

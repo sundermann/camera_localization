@@ -5,7 +5,7 @@ namespace fub_visual_odometry {
 
 VisualOdometry::VisualOdometry(ros::NodeHandle& nh) : tfListener(tfBuffer) {
     image_transport::ImageTransport it(nh);
-    imageSubscriber = it.subscribeCamera("/tracking/cam_left/image_raw", 1, &VisualOdometry::onImage, this, image_transport::TransportHints("compressed"));
+    imageSubscriber = it.subscribeCamera("/tracking/cam_left/image_raw", 10, &VisualOdometry::onImage, this, image_transport::TransportHints("compressed"));
     detectionPublisher = it.advertise("detection", 1);
     markerPublisher = nh.advertise<visualization_msgs::MarkerArray>("marker", 1);
     odomPublisher = nh.advertise<nav_msgs::Odometry>("odom", 1);
@@ -153,16 +153,12 @@ void VisualOdometry::onImage(const sensor_msgs::ImageConstPtr &msg, const sensor
                                     cameraModel.distortionCoeffs(),
                                     rvec[i],
                                     tvec[i],
-                                    0.05);
-                */
-                auto p1 = getMapCoordinates(cameraModel, carMarkerCorners[i][0], markerTranslation.z());
+                                    0.05)*/
+                /*auto p1 = getMapCoordinates(cameraModel, carMarkerCorners[i][0], markerTranslation.z());
                 auto p2 = getMapCoordinates(cameraModel, carMarkerCorners[i][1], markerTranslation.z());
                 auto p3 = getMapCoordinates(cameraModel, carMarkerCorners[i][2], markerTranslation.z());
                 auto p4 = getMapCoordinates(cameraModel, carMarkerCorners[i][3], markerTranslation.z());
 
-                cv::Mat1d rod;
-                cv::Rodrigues(rvec[i], rod);
-                auto yaw = atan2(rod(0,0), rod(1,0));
 
                 std::cout << yaw << std::endl;
 
@@ -175,7 +171,13 @@ void VisualOdometry::onImage(const sensor_msgs::ImageConstPtr &msg, const sensor
                 addMarker(markers, p1, c, i, msg->header.stamp);
                 addMarker(markers, p2, c, i + 1, msg->header.stamp);
                 addMarker(markers, p3, c, i + 2, msg->header.stamp);
-                addMarker(markers, p4, c, i + 3, msg->header.stamp);
+                addMarker(markers, p4, c, i + 3, msg->header.stamp);*/
+
+
+                cv::Mat1d rod;
+                cv::Rodrigues(rvec[i], rod);
+                auto yaw = atan2(rod(0,0), rod(1,0));
+
 
                 geometry_msgs::Quaternion orientation;
                 orientation.x = 0;
@@ -229,6 +231,7 @@ void VisualOdometry::onImage(const sensor_msgs::ImageConstPtr &msg, const sensor
 
     }
 
+    cvDetectionImage->encoding = cvTypeToRosType(cvDetectionImage->image.type());
     detectionPublisher.publish(cvDetectionImage->toImageMsg());
 }
 
