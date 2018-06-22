@@ -96,7 +96,7 @@ void VisualOdometry::onImage(const sensor_msgs::ImageConstPtr &msg, const sensor
             i++;
         }
 
-        if (mapMarkerIds.size() >= 4) {
+        if (worldCoordinates.size() >= 4) {
 
             cv::solvePnP(worldCoordinates,
                          imageCoordinates,
