@@ -95,7 +95,7 @@ class VisualOdometry {
 
     image_transport::Publisher detectionPublisher;
     ros::Publisher markerPublisher;
-    ros::Publisher odomPublisher;
+    std::unordered_map<int, ros::Publisher> odomPublishers;
 
     image_transport::CameraSubscriber imageSubscriber;
     ros::Subscriber mapSubscriber;

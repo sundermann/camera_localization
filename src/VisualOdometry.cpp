@@ -8,10 +8,13 @@ VisualOdometry::VisualOdometry(ros::NodeHandle& nh) : tfListener(tfBuffer) {
     imageSubscriber = it.subscribeCamera("/tracking/cam_left/image_raw", 10, &VisualOdometry::onImage, this, image_transport::TransportHints("compressed"));
     detectionPublisher = it.advertise("detection", 1);
     markerPublisher = nh.advertise<visualization_msgs::MarkerArray>("marker", 1);
-    odomPublisher = nh.advertise<nav_msgs::Odometry>("odom", 1);
 
     mapDictionary = cv::aruco::getPredefinedDictionary(cv::aruco::DICT_6X6_250);
     carDictionary = cv::aruco::getPredefinedDictionary(cv::aruco::DICT_4X4_50);
+
+    for (int i = 0; i < carDictionary->bytesList.rows; i++) {
+        odomPublishers[i] = nh.advertise<nav_msgs::Odometry>(cv::format("odom/%d", i), 1);
+    }
 
     auto x = nh.param("front_marker_translation_x", 0.15);
     auto y = nh.param("front_marker_translation_y", 0);
@@ -107,14 +110,14 @@ void VisualOdometry::onImage(const sensor_msgs::ImageConstPtr &msg, const sensor
             rotationMatrix = cv::Mat1d::zeros(3, 3);
             cv::Rodrigues(rvec, rotationMatrix);
 
-            rotationMatrix = rotationMatrix.t();
-            translationMatrix = -rotationMatrix * translationMatrix;
+            cv::Mat1d cameraTransformRotation = rotationMatrix.t();
+            cv::Mat1d cameraTranslationMatrix = -cameraTransformRotation * translationMatrix;
 
-            tf2::Matrix3x3 cameraRotation(rotationMatrix(0, 0), rotationMatrix(0, 1), rotationMatrix(0, 2),
-                                          rotationMatrix(1, 0), rotationMatrix(1, 1), rotationMatrix(1, 2),
-                                          rotationMatrix(2, 0), rotationMatrix(2, 1), rotationMatrix(2, 2));
+            tf2::Matrix3x3 cameraRotation(cameraTransformRotation(0, 0), cameraTransformRotation(0, 1), cameraTransformRotation(0, 2),
+                                          cameraTransformRotation(1, 0), cameraTransformRotation(1, 1), cameraTransformRotation(1, 2),
+                                          cameraTransformRotation(2, 0), cameraTransformRotation(2, 1), cameraTransformRotation(2, 2));
 
-            tf2::Vector3 cameraTranslation(translationMatrix(0, 0), translationMatrix(1, 0), translationMatrix(2, 0));
+            tf2::Vector3 cameraTranslation(cameraTranslationMatrix(0, 0), cameraTranslationMatrix(1, 0), cameraTranslationMatrix(2, 0));
 
             geometry_msgs::TransformStamped cameraTransform;
             cameraTransform.header = msg->header;
@@ -222,8 +225,7 @@ void VisualOdometry::onImage(const sensor_msgs::ImageConstPtr &msg, const sensor
                 odometry.header.stamp = msg->header.stamp;
                 odometry.pose.pose.orientation = orientation;
                 odometry.pose.pose.position = frontPoint;
-                odomPublisher.publish(odometry);
-
+                odomPublishers[carMarkerIds[i]].publish(odometry);
             }
         }
 
@@ -242,20 +244,40 @@ double VisualOdometry::getOrientation(const geometry_msgs::Point& front, const g
 geometry_msgs::Point VisualOdometry::getMapCoordinates(const image_geometry::PinholeCameraModel& cameraModel, const cv::Point2d& point, double height) const {
     auto rectifiedPoint = cameraModel.rectifyPoint(point);
 
-    cv::Mat1d A(3,3);
+    /*cv::Mat1d A(3,3);
     auto markerCameraHeight = translationMatrix(2, 0) - height;
     A << markerCameraHeight, 0, -translationMatrix(0, 0), 0, markerCameraHeight, -translationMatrix(1, 0), 0, 0, -1;
-    cv::Mat1d mat = A * rotationMatrix * cv::Mat(cameraModel.intrinsicMatrix().inv());
-    cv::Mat1d p(3,1);
-    p << rectifiedPoint.x, rectifiedPoint.y, 1.0;
+    cv::Mat1d mat = A * rotationMatrix * cv::Mat(cameraModel.intrinsicMatrix().inv());*/
+    //cv::Mat p(3,1);
+    //p << rectifiedPoint.x, rectifiedPoint.y, 1.0;
 
-    cv::Mat1d p2 = mat * p;
+    cv::Mat p = cv::Mat::ones(3,1,cv::DataType<double>::type);
+    p.at<double>(0,0) = rectifiedPoint.x;
+    p.at<double>(1,0) = rectifiedPoint.y;
+
+    /*cv::Mat1d p2 = mat * p;
     p2 /= p2(2,0);
 
     geometry_msgs::Point mapPoint;
     mapPoint.x = p2[0][0];
     mapPoint.y = p2[1][0];
-    mapPoint.z = height;
+    mapPoint.z = height;*/
+
+
+    cv::Mat tempMat, tempMat2;
+    double s = 0;
+    double zConst = height;
+    tempMat = rotationMatrix.inv() * cv::Mat(cameraModel.intrinsicMatrix().inv()) * p;
+    tempMat2 = rotationMatrix.inv() * translationMatrix;
+    s = zConst + tempMat2.at<double>(2,0);
+    s /= tempMat.at<double>(2,0);
+    cv::Mat wcPoint = rotationMatrix.inv() * (s * cv::Mat(cameraModel.intrinsicMatrix().inv()) * p - translationMatrix);
+
+    geometry_msgs::Point mapPoint;
+    mapPoint.x = wcPoint.at<double>(0, 0);
+    mapPoint.y = wcPoint.at<double>(1, 0);
+    mapPoint.z = wcPoint.at<double>(2, 0);
+
 
     return mapPoint;
 }
