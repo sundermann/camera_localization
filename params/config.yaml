@@ -1,23 +1,23 @@
 !!python/object/new:dynamic_reconfigure.encoding.Config
 dictitems:
-  adaptiveThreshConstant: 7
-  adaptiveThreshWinSizeMax: 53
+  adaptiveThreshConstant: 7.0
+  adaptiveThreshWinSizeMax: 23
   adaptiveThreshWinSizeMin: 3
-  adaptiveThreshWinSizeStep: 4
+  adaptiveThreshWinSizeStep: 10
   cornerRefinementMaxIterations: 30
-  cornerRefinementMinAccuracy: 0.01
+  cornerRefinementMinAccuracy: 0.1
   cornerRefinementSubpix: true
   cornerRefinementWinSize: 5
   doCornerRefinement: true
   errorCorrectionRate: 0.6
   groups: !!python/object/new:dynamic_reconfigure.encoding.Config
     dictitems:
-      adaptiveThreshConstant: 7
-      adaptiveThreshWinSizeMax: 53
+      adaptiveThreshConstant: 7.0
+      adaptiveThreshWinSizeMax: 23
       adaptiveThreshWinSizeMin: 3
-      adaptiveThreshWinSizeStep: 4
+      adaptiveThreshWinSizeStep: 10
       cornerRefinementMaxIterations: 30
-      cornerRefinementMinAccuracy: 0.01
+      cornerRefinementMinAccuracy: 0.1
       cornerRefinementSubpix: true
       cornerRefinementWinSize: 5
       doCornerRefinement: true
@@ -26,11 +26,11 @@ dictitems:
         state: []
       id: 0
       markerBorderBits: 1
-      maxErroneousBitsInBorderRate: 0.04
+      maxErroneousBitsInBorderRate: 0.35
       maxMarkerPerimeterRate: 1.0
       minCornerDistanceRate: 0.05
       minDistanceToBorder: 3
-      minMarkerDistanceRate: 0.1
+      minMarkerDistanceRate: 0.05
       minMarkerPerimeterRate: 0.03
       minOtsuStdDev: 5.0
       name: Default
@@ -38,20 +38,20 @@ dictitems:
         state: []
       parent: 0
       perspectiveRemoveIgnoredMarginPerCell: 0.13
-      perspectiveRemovePixelPerCell: 8
-      polygonalApproxAccuracyRate: 0.01
+      perspectiveRemovePixelPerCell: 4
+      polygonalApproxAccuracyRate: 0.03
       state: true
       type: ''
     state: []
   markerBorderBits: 1
-  maxErroneousBitsInBorderRate: 0.04
+  maxErroneousBitsInBorderRate: 0.35
   maxMarkerPerimeterRate: 1.0
   minCornerDistanceRate: 0.05
   minDistanceToBorder: 3
-  minMarkerDistanceRate: 0.1
+  minMarkerDistanceRate: 0.05
   minMarkerPerimeterRate: 0.03
   minOtsuStdDev: 5.0
   perspectiveRemoveIgnoredMarginPerCell: 0.13
-  perspectiveRemovePixelPerCell: 8
-  polygonalApproxAccuracyRate: 0.01
+  perspectiveRemovePixelPerCell: 4
+  polygonalApproxAccuracyRate: 0.03
 state: []
