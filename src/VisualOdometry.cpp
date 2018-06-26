@@ -2,7 +2,8 @@
 
 namespace fub_visual_odometry {
 
-VisualOdometry::VisualOdometry(ros::NodeHandle &globalNodeHandle, ros::NodeHandle &privateNodeHandle) : tfListener(tfBuffer) {
+VisualOdometry::VisualOdometry(ros::NodeHandle &globalNodeHandle, ros::NodeHandle &privateNodeHandle) : tfListener(
+    tfBuffer) {
     image_transport::ImageTransport it(globalNodeHandle);
     imageSubscriber = it.subscribeCamera("image_raw",
                                          10,
@@ -43,18 +44,16 @@ void VisualOdometry::onReconfigure(VisualOdometryConfig &config, uint32_t level)
     detectorParams->cornerRefinementMaxIterations = config.cornerRefinementMaxIterations;
     detectorParams->cornerRefinementMinAccuracy = config.cornerRefinementMinAccuracy;
     detectorParams->cornerRefinementWinSize = config.cornerRefinementWinSize;
-#if OPENCV_MINOR_VERSION==2
+#if OPENCV_MINOR_VERSION == 2
     detectorParams->doCornerRefinement = config.doCornerRefinement;
 #else
     if (config.doCornerRefinement) {
         if (config.cornerRefinementSubpix) {
             detectorParams->cornerRefinementMethod = cv::aruco::CORNER_REFINE_SUBPIX;
-        }
-        else {
+        } else {
             detectorParams->cornerRefinementMethod = cv::aruco::CORNER_REFINE_CONTOUR;
         }
-    }
-    else {
+    } else {
         detectorParams->cornerRefinementMethod = cv::aruco::CORNER_REFINE_NONE;
     }
 #endif
@@ -216,10 +215,10 @@ void VisualOdometry::onImage(const sensor_msgs::ImageConstPtr &msg, const sensor
                 auto p2 = getMapCoordinates(cameraModel, imagePoints[1], markerTranslation.z());
                 auto yaw = getOrientation(p2, p1);
 
+                // We could probably also get the orientation from rvec
                 /*cv::Mat1d rod;
                 cv::Rodrigues(rvec[i], rod);
                 auto yaw = atan2(rod(0,0), rod(1,0)); */
-
 
                 geometry_msgs::Quaternion orientation;
                 orientation.x = 0;
@@ -229,21 +228,30 @@ void VisualOdometry::onImage(const sensor_msgs::ImageConstPtr &msg, const sensor
 
                 auto rect = cv::boundingRect(carMarkerCorners[i]);
 
-                // This is probably not so accurate
-                geometry_msgs::Point frontPoint = getMapCoordinates(cameraModel,
-                                                                    cv::Point2d(rect.x + rect.width / 2.0,
-                                                                                rect.y + rect.height / 2.0),
-                                                                    markerTranslation.z());
+                // Get marker coordinates
+                geometry_msgs::Point markerPoint = getMapCoordinates(cameraModel,
+                                                                     imagePoints[0],
+                                                                     markerTranslation.z());
 
-                tf2::Vector3 cameraTranslation(frontPoint.x, frontPoint.y, frontPoint.z);
+                // Shift marker coordinates to base link (center of rear axe at ground)
+                // First remove rotation then translate by marker shift and rotate back
+                tf2::Vector3 markerPointVector;
+                tf2::Quaternion tf2Orientation;
+                tf2::convert(orientation, tf2Orientation);
+                tf2::convert(markerPoint, markerPointVector);
+
+                tf2::Matrix3x3 rotationMatrix(tf2Orientation);
+                tf2::Vector3 baseLinkVector =
+                    rotationMatrix * ((rotationMatrix.inverse() * markerPointVector) - markerTranslation);
+
                 geometry_msgs::TransformStamped baseLinkTransform;
                 baseLinkTransform.header = msg->header;
                 baseLinkTransform.header.stamp = msg->header.stamp;
                 baseLinkTransform.header.frame_id = "map";
                 baseLinkTransform.child_frame_id = "base_link";
-                geometry_msgs::Vector3 m;
-                tf2::convert(cameraTranslation, m);
-                baseLinkTransform.transform.translation = m;
+                geometry_msgs::Vector3 baseLinkTransformVector;
+                tf2::convert(baseLinkVector, baseLinkTransformVector);
+                baseLinkTransform.transform.translation = baseLinkTransformVector;
                 baseLinkTransform.transform.rotation = orientation;
                 transformBroadcaster.sendTransform(baseLinkTransform);
 
@@ -252,7 +260,9 @@ void VisualOdometry::onImage(const sensor_msgs::ImageConstPtr &msg, const sensor
                 odometry.child_frame_id = "base_link";
                 odometry.header.stamp = msg->header.stamp;
                 odometry.pose.pose.orientation = orientation;
-                odometry.pose.pose.position = frontPoint;
+                odometry.pose.pose.position.x = baseLinkVector.x();
+                odometry.pose.pose.position.y = baseLinkVector.y();
+                odometry.pose.pose.position.z = baseLinkVector.z();
                 odometry.twist.twist = getTwist(odometry, lastOdometries[carMarkerIds[i]], p2);
                 odomPublishers[carMarkerIds[i]].publish(odometry);
 
@@ -320,7 +330,7 @@ geometry_msgs::Point VisualOdometry::getMapCoordinates(const image_geometry::Pin
     cv::Mat1d wcTranslation(3, 1);
     wcTranslation << markerTranslation.x(), markerTranslation.y(), markerTranslation.z();
     cv::Mat1d wcPoint = rotationMatrix.inv()
-        * (s * cv::Mat(cameraModel.intrinsicMatrix().inv()) * p - translationMatrix + wcTranslation);
+        * (s * cv::Mat(cameraModel.intrinsicMatrix().inv()) * p - translationMatrix);
     //wcPoint = (rotationMatrix.inv()) * wcPoint - wcTranslation;
 
     geometry_msgs::Point mapPoint;
