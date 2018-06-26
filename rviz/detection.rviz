@@ -4,10 +4,11 @@ Panels:
     Name: Displays
     Property Tree Widget:
       Expanded:
-        - /Global Options1
-        - /Status1
+        - /Odometry1
+        - /Odometry1/Shape1
+        - /TF1
         - /TF1/Status1
-        - /TF1/Frames1
+        - /Odometry2
         - /Odometry2/Shape1
         - /Odometry3/Shape1
       Splitter Ratio: 0.465115994
@@ -80,7 +81,7 @@ Visualization Manager:
           Value: true
         Value: true
       Enabled: true
-      Keep: 1000
+      Keep: 1
       Name: Odometry
       Position Tolerance: 0.100000001
       Shape:
@@ -88,10 +89,10 @@ Visualization Manager:
         Axes Length: 1
         Axes Radius: 0.100000001
         Color: 255; 25; 0
-        Head Length: 0.300000012
-        Head Radius: 0.100000001
-        Shaft Length: 1
-        Shaft Radius: 0.0500000007
+        Head Length: 0.100000001
+        Head Radius: 0.0500000007
+        Shaft Length: 0.300000012
+        Shaft Radius: 0.0299999993
         Value: Arrow
       Topic: /odom
       Unreliable: false
@@ -162,13 +163,13 @@ Visualization Manager:
       Enabled: true
       Frame Timeout: 15
       Frames:
-        All Enabled: true
+        All Enabled: false
         base_link:
           Value: true
         cam_left:
-          Value: true
+          Value: false
         car_front_marker:
-          Value: true
+          Value: false
         laser:
           Value: true
         map:
@@ -185,16 +186,17 @@ Visualization Manager:
       Show Axes: true
       Show Names: true
       Tree:
+        map:
+          base_link:
+            {}
+          cam_left:
+            {}
+          tracking_cam_left:
+            {}
+          tracking_cam_right:
+            {}
         odom:
-          map:
-            base_link:
-              {}
-            cam_left:
-              {}
-            tracking_cam_left:
-              {}
-            tracking_cam_right:
-              {}
+          {}
       Update Interval: 0
       Value: true
     - Angle Tolerance: 0.100000001
@@ -289,26 +291,21 @@ Visualization Manager:
   Value: true
   Views:
     Current:
-      Class: rviz/ThirdPersonFollower
-      Distance: 8.40249634
+      Angle: 3.16000009
+      Class: rviz/TopDownOrtho
       Enable Stereo Rendering:
         Stereo Eye Separation: 0.0599999987
         Stereo Focal Distance: 1
         Swap Stereo Eyes: false
         Value: false
-      Focal Point:
-        X: 2.68164301
-        Y: 3.08853865
-        Z: -1.1920929e-07
-      Focal Shape Fixed Size: true
-      Focal Shape Size: 0.0500000007
       Invert Z Axis: false
       Name: Current View
       Near Clip Distance: 0.00999999978
-      Pitch: 0.959796786
+      Scale: 158.108078
       Target Frame: <Fixed Frame>
-      Value: ThirdPersonFollower (rviz)
-      Yaw: 1.55859375
+      Value: TopDownOrtho (rviz)
+      X: 2.64373159
+      Y: 1.44870496
     Saved: ~
 Window Geometry:
   Detection Left:
