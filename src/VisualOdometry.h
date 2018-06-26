@@ -137,6 +137,7 @@ class VisualOdometry {
     VisualOdometryConfig config;
     cv::Ptr<cv::aruco::Dictionary> mapDictionary;
     cv::Ptr<cv::aruco::Dictionary> carDictionary;
+    cv::Ptr<cv::aruco::DetectorParameters> detectorParams;
 
     std::vector<int> mapMarkerIds;
     std::vector<std::vector<cv::Point2f>> mapMarkerCorners;

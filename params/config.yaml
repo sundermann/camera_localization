@@ -1,51 +1,57 @@
 !!python/object/new:dynamic_reconfigure.encoding.Config
 dictitems:
-  car_front_marker_max_h: 146
-  car_front_marker_max_s: 255
-  car_front_marker_max_v: 213
-  car_front_marker_min_h: 72
-  car_front_marker_min_s: 147
-  car_front_marker_min_v: 62
-  car_rear_marker_max_h: 255
-  car_rear_marker_max_s: 255
-  car_rear_marker_max_v: 255
-  car_rear_marker_min_h: 0
-  car_rear_marker_min_s: 214
-  car_rear_marker_min_v: 214
+  adaptiveThreshConstant: 7
+  adaptiveThreshWinSizeMax: 53
+  adaptiveThreshWinSizeMin: 3
+  adaptiveThreshWinSizeStep: 4
+  cornerRefinementMaxIterations: 30
+  cornerRefinementMinAccuracy: 0.01
+  cornerRefinementSubpix: true
+  cornerRefinementWinSize: 5
+  doCornerRefinement: true
+  errorCorrectionRate: 0.6
   groups: !!python/object/new:dynamic_reconfigure.encoding.Config
     dictitems:
-      car_front_marker_max_h: 146
-      car_front_marker_max_s: 255
-      car_front_marker_max_v: 213
-      car_front_marker_min_h: 72
-      car_front_marker_min_s: 147
-      car_front_marker_min_v: 62
-      car_rear_marker_max_h: 255
-      car_rear_marker_max_s: 255
-      car_rear_marker_max_v: 255
-      car_rear_marker_min_h: 0
-      car_rear_marker_min_s: 214
-      car_rear_marker_min_v: 214
+      adaptiveThreshConstant: 7
+      adaptiveThreshWinSizeMax: 53
+      adaptiveThreshWinSizeMin: 3
+      adaptiveThreshWinSizeStep: 4
+      cornerRefinementMaxIterations: 30
+      cornerRefinementMinAccuracy: 0.01
+      cornerRefinementSubpix: true
+      cornerRefinementWinSize: 5
+      doCornerRefinement: true
+      errorCorrectionRate: 0.6
       groups: !!python/object/new:dynamic_reconfigure.encoding.Config
         state: []
       id: 0
-      map_marker_max_h: 70
-      map_marker_max_s: 255
-      map_marker_max_v: 213
-      map_marker_min_h: 12
-      map_marker_min_s: 147
-      map_marker_min_v: 48
+      markerBorderBits: 1
+      maxErroneousBitsInBorderRate: 0.04
+      maxMarkerPerimeterRate: 1.0
+      minCornerDistanceRate: 0.05
+      minDistanceToBorder: 3
+      minMarkerDistanceRate: 0.1
+      minMarkerPerimeterRate: 0.03
+      minOtsuStdDev: 5.0
       name: Default
       parameters: !!python/object/new:dynamic_reconfigure.encoding.Config
         state: []
       parent: 0
+      perspectiveRemoveIgnoredMarginPerCell: 0.13
+      perspectiveRemovePixelPerCell: 8
+      polygonalApproxAccuracyRate: 0.01
       state: true
       type: ''
     state: []
-  map_marker_max_h: 70
-  map_marker_max_s: 255
-  map_marker_max_v: 213
-  map_marker_min_h: 12
-  map_marker_min_s: 147
-  map_marker_min_v: 48
+  markerBorderBits: 1
+  maxErroneousBitsInBorderRate: 0.04
+  maxMarkerPerimeterRate: 1.0
+  minCornerDistanceRate: 0.05
+  minDistanceToBorder: 3
+  minMarkerDistanceRate: 0.1
+  minMarkerPerimeterRate: 0.03
+  minOtsuStdDev: 5.0
+  perspectiveRemoveIgnoredMarginPerCell: 0.13
+  perspectiveRemovePixelPerCell: 8
+  polygonalApproxAccuracyRate: 0.01
 state: []

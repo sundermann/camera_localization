@@ -14,6 +14,7 @@ VisualOdometry::VisualOdometry(ros::NodeHandle &nh) : tfListener(tfBuffer) {
 
     mapDictionary = cv::aruco::getPredefinedDictionary(cv::aruco::DICT_6X6_250);
     carDictionary = cv::aruco::getPredefinedDictionary(cv::aruco::DICT_4X4_50);
+    detectorParams = cv::aruco::DetectorParameters::create();
 
     for (int i = 0; i < carDictionary->bytesList.rows; i++) {
         odomPublishers[i] = nh.advertise<nav_msgs::Odometry>(cv::format("odom/%d", i), 1);
@@ -32,6 +33,41 @@ VisualOdometry::VisualOdometry(ros::NodeHandle &nh) : tfListener(tfBuffer) {
 
 void VisualOdometry::onReconfigure(VisualOdometryConfig &config, uint32_t level) {
     this->config = config;
+
+    detectorParams->adaptiveThreshConstant = config.adaptiveThreshConstant;
+    detectorParams->adaptiveThreshWinSizeMin = config.adaptiveThreshWinSizeMin;
+    detectorParams->adaptiveThreshWinSizeMax = config.adaptiveThreshWinSizeMax;
+    detectorParams->adaptiveThreshWinSizeStep = config.adaptiveThreshWinSizeStep;
+    detectorParams->cornerRefinementMaxIterations = config.cornerRefinementMaxIterations;
+    detectorParams->cornerRefinementMinAccuracy = config.cornerRefinementMinAccuracy;
+    detectorParams->cornerRefinementWinSize = config.cornerRefinementWinSize;
+#if OPENCV_MINOR_VERSION==2
+    detectorParams->doCornerRefinement = config.doCornerRefinement;
+#else
+    if (config.doCornerRefinement) {
+        if (config.cornerRefinementSubpix) {
+            detectorParams->cornerRefinementMethod = cv::aruco::CORNER_REFINE_SUBPIX;
+        }
+        else {
+            detectorParams->cornerRefinementMethod = cv::aruco::CORNER_REFINE_CONTOUR;
+        }
+    }
+    else {
+        detectorParams->cornerRefinementMethod = cv::aruco::CORNER_REFINE_NONE;
+    }
+#endif
+    detectorParams->errorCorrectionRate = config.errorCorrectionRate;
+    detectorParams->minCornerDistanceRate = config.minCornerDistanceRate;
+    detectorParams->markerBorderBits = config.markerBorderBits;
+    detectorParams->maxErroneousBitsInBorderRate = config.maxErroneousBitsInBorderRate;
+    detectorParams->minDistanceToBorder = config.minDistanceToBorder;
+    detectorParams->minMarkerDistanceRate = config.minMarkerDistanceRate;
+    detectorParams->minMarkerPerimeterRate = config.minMarkerPerimeterRate;
+    detectorParams->maxMarkerPerimeterRate = config.maxMarkerPerimeterRate;
+    detectorParams->minOtsuStdDev = config.minOtsuStdDev;
+    detectorParams->perspectiveRemoveIgnoredMarginPerCell = config.perspectiveRemoveIgnoredMarginPerCell;
+    detectorParams->perspectiveRemovePixelPerCell = config.perspectiveRemovePixelPerCell;
+    detectorParams->polygonalApproxAccuracyRate = config.polygonalApproxAccuracyRate;
 
     // Find the camera again with the new parameters
     foundCamera = false;
@@ -56,11 +92,9 @@ void VisualOdometry::onImage(const sensor_msgs::ImageConstPtr &msg, const sensor
     image_geometry::PinholeCameraModel cameraModel;
     cameraModel.fromCameraInfo(info_msg);
 
-    cv::Ptr<cv::aruco::DetectorParameters> params = cv::aruco::DetectorParameters::create();
-
     std::vector<int> carMarkerIds;
     std::vector<std::vector<cv::Point2f>> carMarkerCorners;
-    cv::aruco::detectMarkers(cvDetectionImage->image, carDictionary, carMarkerCorners, carMarkerIds, params,
+    cv::aruco::detectMarkers(cvDetectionImage->image, carDictionary, carMarkerCorners, carMarkerIds, detectorParams,
                              cv::noArray(), cameraModel.intrinsicMatrix(), cameraModel.distortionCoeffs());
 
     if (!mapMarkerIds.empty()) {
@@ -69,7 +103,7 @@ void VisualOdometry::onImage(const sensor_msgs::ImageConstPtr &msg, const sensor
     }
 
     if (!foundCamera) {
-        cv::aruco::detectMarkers(cvDetectionImage->image, mapDictionary, mapMarkerCorners, mapMarkerIds, params,
+        cv::aruco::detectMarkers(cvDetectionImage->image, mapDictionary, mapMarkerCorners, mapMarkerIds, detectorParams,
                                  cv::noArray(), cameraModel.intrinsicMatrix(), cameraModel.distortionCoeffs());
 
         cv::Mat1d rvec = cv::Mat1d::zeros(3, 1);
