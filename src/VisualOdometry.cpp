@@ -1,11 +1,14 @@
 #include "VisualOdometry.h"
 
-
 namespace fub_visual_odometry {
 
-VisualOdometry::VisualOdometry(ros::NodeHandle& nh) : tfListener(tfBuffer) {
+VisualOdometry::VisualOdometry(ros::NodeHandle &nh) : tfListener(tfBuffer) {
     image_transport::ImageTransport it(nh);
-    imageSubscriber = it.subscribeCamera("/tracking/cam_left/image_raw", 10, &VisualOdometry::onImage, this, image_transport::TransportHints("compressed"));
+    imageSubscriber = it.subscribeCamera("/tracking/cam_left/image_raw",
+                                         10,
+                                         &VisualOdometry::onImage,
+                                         this,
+                                         image_transport::TransportHints("compressed"));
     detectionPublisher = it.advertise("detection", 1);
     markerPublisher = nh.advertise<visualization_msgs::MarkerArray>("marker", 1);
 
@@ -16,9 +19,9 @@ VisualOdometry::VisualOdometry(ros::NodeHandle& nh) : tfListener(tfBuffer) {
         odomPublishers[i] = nh.advertise<nav_msgs::Odometry>(cv::format("odom/%d", i), 1);
     }
 
-    auto x = nh.param("front_marker_translation_x", 0.15);
+    auto x = nh.param("front_marker_translation_x", 0.20);
     auto y = nh.param("front_marker_translation_y", 0);
-    auto z = nh.param("front_marker_translation_z", 0.15);
+    auto z = nh.param("front_marker_translation_z", 0.19);
     markerTranslation = tf2::Vector3(x, y, z);
 
     nodeHandle = nh;
@@ -38,17 +41,14 @@ void VisualOdometry::onMap(const nav_msgs::OccupancyGridConstPtr &msg) {
     map = msg;
 }
 
-
-void VisualOdometry::onImage(const sensor_msgs::ImageConstPtr &msg, const sensor_msgs::CameraInfoConstPtr& info_msg) {
+void VisualOdometry::onImage(const sensor_msgs::ImageConstPtr &msg, const sensor_msgs::CameraInfoConstPtr &info_msg) {
     cv_bridge::CvImagePtr cvDetectionImage;
 
     cv::waitKey(1);
-    try
-    {
+    try {
         cvDetectionImage = cv_bridge::toCvCopy(msg, sensor_msgs::image_encodings::BGR8);
     }
-    catch (cv_bridge::Exception& e)
-    {
+    catch (cv_bridge::Exception &e) {
         ROS_ERROR("cv_bridge exception: %s", e.what());
         return;
     }
@@ -61,16 +61,16 @@ void VisualOdometry::onImage(const sensor_msgs::ImageConstPtr &msg, const sensor
     std::vector<int> carMarkerIds;
     std::vector<std::vector<cv::Point2f>> carMarkerCorners;
     cv::aruco::detectMarkers(cvDetectionImage->image, carDictionary, carMarkerCorners, carMarkerIds, params,
-        cv::noArray(), cameraModel.intrinsicMatrix(), cameraModel.distortionCoeffs());
+                             cv::noArray(), cameraModel.intrinsicMatrix(), cameraModel.distortionCoeffs());
 
     if (!mapMarkerIds.empty()) {
         cv::aruco::drawDetectedMarkers(cvDetectionImage->image, mapMarkerCorners, mapMarkerIds);
         cv::aruco::drawDetectedMarkers(cvDetectionImage->image, carMarkerCorners, carMarkerIds);
     }
 
-    if (!foundCamera)  {
+    if (!foundCamera) {
         cv::aruco::detectMarkers(cvDetectionImage->image, mapDictionary, mapMarkerCorners, mapMarkerIds, params,
-            cv::noArray(), cameraModel.intrinsicMatrix(), cameraModel.distortionCoeffs());
+                                 cv::noArray(), cameraModel.intrinsicMatrix(), cameraModel.distortionCoeffs());
 
         cv::Mat1d rvec = cv::Mat1d::zeros(3, 1);
         translationMatrix = cv::Mat1d::zeros(3, 1);
@@ -78,7 +78,7 @@ void VisualOdometry::onImage(const sensor_msgs::ImageConstPtr &msg, const sensor
         std::vector<cv::Point3f> worldCoordinates;
         std::vector<cv::Point2f> imageCoordinates;
         int i = 0;
-        for (auto&& markerId : mapMarkerIds) {
+        for (auto &&markerId : mapMarkerIds) {
             float x, y, z;
             auto has_x = nodeHandle.getParam(cv::format("marker_%d_x", markerId), x);
             auto has_y = nodeHandle.getParam(cv::format("marker_%d_y", markerId), y);
@@ -87,7 +87,7 @@ void VisualOdometry::onImage(const sensor_msgs::ImageConstPtr &msg, const sensor
             if (has_x && has_y && has_z) {
                 worldCoordinates.emplace_back(x, y, z);
                 auto marker = mapMarkerCorners[i];
-                auto rect= cv::boundingRect(marker);
+                auto rect = cv::boundingRect(marker);
 
                 // This is probably not so accurate
                 imageCoordinates.emplace_back(rect.x + rect.width / 2.0f, rect.y + rect.height / 2.0f);
@@ -107,17 +107,27 @@ void VisualOdometry::onImage(const sensor_msgs::ImageConstPtr &msg, const sensor
                          false,
                          cv::SOLVEPNP_ITERATIVE);
 
+            double rms = checkCameraPose(worldCoordinates,
+                                         imageCoordinates,
+                                         cv::Mat(cameraModel.intrinsicMatrix()),
+                                         cameraModel.distortionCoeffs(),
+                                         rvec,
+                                         translationMatrix);
+            ROS_ERROR("Camera pose error: %f", rms);
+
             rotationMatrix = cv::Mat1d::zeros(3, 3);
             cv::Rodrigues(rvec, rotationMatrix);
 
             cv::Mat1d cameraTransformRotation = rotationMatrix.t();
             cv::Mat1d cameraTranslationMatrix = -cameraTransformRotation * translationMatrix;
 
-            tf2::Matrix3x3 cameraRotation(cameraTransformRotation(0, 0), cameraTransformRotation(0, 1), cameraTransformRotation(0, 2),
-                                          cameraTransformRotation(1, 0), cameraTransformRotation(1, 1), cameraTransformRotation(1, 2),
-                                          cameraTransformRotation(2, 0), cameraTransformRotation(2, 1), cameraTransformRotation(2, 2));
+            tf2::Matrix3x3 cameraRotation
+                (cameraTransformRotation(0, 0), cameraTransformRotation(0, 1), cameraTransformRotation(0, 2),
+                 cameraTransformRotation(1, 0), cameraTransformRotation(1, 1), cameraTransformRotation(1, 2),
+                 cameraTransformRotation(2, 0), cameraTransformRotation(2, 1), cameraTransformRotation(2, 2));
 
-            tf2::Vector3 cameraTranslation(cameraTranslationMatrix(0, 0), cameraTranslationMatrix(1, 0), cameraTranslationMatrix(2, 0));
+            tf2::Vector3 cameraTranslation
+                (cameraTranslationMatrix(0, 0), cameraTranslationMatrix(1, 0), cameraTranslationMatrix(2, 0));
 
             geometry_msgs::TransformStamped cameraTransform;
             cameraTransform.header = msg->header;
@@ -143,14 +153,24 @@ void VisualOdometry::onImage(const sensor_msgs::ImageConstPtr &msg, const sensor
 
         if (!carMarkerCorners.empty()) {
             std::vector<cv::Vec3d> rvec, tvec;
-            cv::aruco::estimatePoseSingleMarkers(carMarkerCorners, 0.095, cameraModel.intrinsicMatrix(), cameraModel.distortionCoeffs(), rvec, tvec);
+            cv::aruco::estimatePoseSingleMarkers(carMarkerCorners,
+                                                 0.095,
+                                                 cameraModel.intrinsicMatrix(),
+                                                 cameraModel.distortionCoeffs(),
+                                                 rvec,
+                                                 tvec);
 
             for (int i = 0; i < carMarkerCorners.size(); i++) {
 
                 // calculate yaw
-                std::vector<cv::Point3f> pts = { cv::Point3f(0, 0, 0), cv::Point3f(1, 0, 0)};
-                std::vector<cv::Point2f > imagePoints;
-                cv::projectPoints(pts, rvec[i], tvec[i], cameraModel.intrinsicMatrix(), cameraModel.distortionCoeffs(), imagePoints);
+                std::vector<cv::Point3f> pts = {cv::Point3f(0, 0, 0), cv::Point3f(1, 0, 0)};
+                std::vector<cv::Point2f> imagePoints;
+                cv::projectPoints(pts,
+                                  rvec[i],
+                                  tvec[i],
+                                  cameraModel.intrinsicMatrix(),
+                                  cameraModel.distortionCoeffs(),
+                                  imagePoints);
                 cv::line(cvDetectionImage->image, imagePoints[0], imagePoints[1], cv::Scalar(0, 0, 255), 3);
 
                 auto p1 = getMapCoordinates(cameraModel, imagePoints[0], markerTranslation.z());
@@ -168,10 +188,13 @@ void VisualOdometry::onImage(const sensor_msgs::ImageConstPtr &msg, const sensor
                 orientation.z = sin(yaw / 2.0);
                 orientation.w = cos(yaw / 2.0);
 
-                auto rect= cv::boundingRect(carMarkerCorners[i]);
+                auto rect = cv::boundingRect(carMarkerCorners[i]);
 
                 // This is probably not so accurate
-                geometry_msgs::Point frontPoint = getMapCoordinates(cameraModel, cv::Point2d(rect.x +rect.width /2.0, rect.y + rect.height / 2.0), markerTranslation.z());
+                geometry_msgs::Point frontPoint = getMapCoordinates(cameraModel,
+                                                                    cv::Point2d(rect.x + rect.width / 2.0,
+                                                                                rect.y + rect.height / 2.0),
+                                                                    markerTranslation.z());
 
                 tf2::Vector3 cameraTranslation(frontPoint.x, frontPoint.y, frontPoint.z);
                 geometry_msgs::TransformStamped carFrontMarkerTransform;
@@ -220,7 +243,9 @@ void VisualOdometry::onImage(const sensor_msgs::ImageConstPtr &msg, const sensor
     detectionPublisher.publish(cvDetectionImage->toImageMsg());
 }
 
-geometry_msgs::Twist VisualOdometry::getTwist(const nav_msgs::Odometry &last, const nav_msgs::Odometry &current, const geometry_msgs::Point orientationPoint) {
+geometry_msgs::Twist VisualOdometry::getTwist(const nav_msgs::Odometry &last,
+                                              const nav_msgs::Odometry &current,
+                                              const geometry_msgs::Point &orientationPoint) {
     geometry_msgs::Twist twist;
     auto deltaTime = current.header.stamp - last.header.stamp;
 
@@ -248,26 +273,29 @@ geometry_msgs::Twist VisualOdometry::getTwist(const nav_msgs::Odometry &last, co
     return twist;
 }
 
-double VisualOdometry::getOrientation(const geometry_msgs::Point& front, const geometry_msgs::Point& rear) {
+double VisualOdometry::getOrientation(const geometry_msgs::Point &front, const geometry_msgs::Point &rear) {
     return atan2(front.y - rear.y, front.x - rear.x);
 }
 
-geometry_msgs::Point VisualOdometry::getMapCoordinates(const image_geometry::PinholeCameraModel& cameraModel, const cv::Point2d& point, double height) const {
+geometry_msgs::Point VisualOdometry::getMapCoordinates(const image_geometry::PinholeCameraModel &cameraModel,
+                                                       const cv::Point2d &point,
+                                                       double height) const {
     auto rectifiedPoint = cameraModel.rectifyPoint(point);
 
-    cv::Mat1d p(3,1);
+    cv::Mat1d p(3, 1);
     p << rectifiedPoint.x, rectifiedPoint.y, 1.0;
 
     cv::Mat1d tempMat, tempMat2;
     double s = 0;
     tempMat = rotationMatrix.inv() * cv::Mat1d(cameraModel.intrinsicMatrix().inv()) * p;
     tempMat2 = rotationMatrix.inv() * translationMatrix;
-    s = height + tempMat2(2,0);
-    s /= tempMat(2,0);
+    s = height + tempMat2(2, 0);
+    s /= tempMat(2, 0);
 
-    cv::Mat1d wcTranslation(3,1);
+    cv::Mat1d wcTranslation(3, 1);
     wcTranslation << markerTranslation.x(), markerTranslation.y(), markerTranslation.z();
-    cv::Mat1d wcPoint = rotationMatrix.inv() * (s * cv::Mat(cameraModel.intrinsicMatrix().inv()) * p - translationMatrix + wcTranslation);
+    cv::Mat1d wcPoint = rotationMatrix.inv()
+        * (s * cv::Mat(cameraModel.intrinsicMatrix().inv()) * p - translationMatrix + wcTranslation);
     //wcPoint = (rotationMatrix.inv()) * wcPoint - wcTranslation;
 
     geometry_msgs::Point mapPoint;
@@ -278,40 +306,29 @@ geometry_msgs::Point VisualOdometry::getMapCoordinates(const image_geometry::Pin
     return mapPoint;
 }
 
-void VisualOdometry::findContours(const cv::Mat &image, cv::OutputArrayOfArrays contours) const {
-    cv::Mat kernel = cv::getStructuringElement( cv::MORPH_RECT, cv::Size(3,3));
+double VisualOdometry::checkCameraPose(const std::vector<cv::Point3f> &worldPoints,
+                                       const std::vector<cv::Point2f> &imagePoints,
+                                       const cv::Mat &cameraMatrix,
+                                       const cv::Mat &distCoeffs,
+                                       const cv::Mat &rvec,
+                                       const cv::Mat &tvec) {
+    std::vector<cv::Point2f> projectedPts;
+    cv::projectPoints(worldPoints, rvec, tvec, cameraMatrix, distCoeffs, projectedPts);
 
-    cv::erode(image, image, kernel);
-    cv::dilate(image, image, kernel);
-    cv::findContours(image, contours, cv::RETR_LIST, cv::CHAIN_APPROX_NONE);
-}
-
-void VisualOdometry::findBestMarkers(const cv::Mat &image, std::vector<Circle> &markers, int n) const {
-    std::vector<std::vector<cv::Point>> contours;
-    findContours(image, contours);
-
-    std::map<double, std::vector<cv::Point>> contoursByArea;
-    for (auto& contour : contours) {
-        auto contourArea = cv::contourArea(contour);
-
-        contoursByArea[contourArea] = contour;
+    double rms = 0.0;
+    for (size_t i = 0; i < projectedPts.size(); i++) {
+        rms += (projectedPts[i].x - imagePoints[i].x) * (projectedPts[i].x - imagePoints[i].x)
+            + (projectedPts[i].y - imagePoints[i].y) * (projectedPts[i].y - imagePoints[i].y);
     }
 
-    int i = 1;
-    for(auto it = contoursByArea.rbegin(); it != contoursByArea.rend(); ++it, i++) {
-        cv::Point2f center;
-        float radius;
-        cv::RotatedRect e = cv::fitEllipse(it->second);
-        cv::minEnclosingCircle(it->second, center, radius);
-        markers.emplace_back(center, radius);
-
-        if (i >= n) {
-            break;
-        }
-    }
+    return sqrt(rms / projectedPts.size());
 }
 
-void VisualOdometry::addMarker(visualization_msgs::MarkerArray& markers, const geometry_msgs::Point& point, const std_msgs::ColorRGBA& color, int id, const ros::Time& stamp) {
+void VisualOdometry::addMarker(visualization_msgs::MarkerArray &markers,
+                               const geometry_msgs::Point &point,
+                               const std_msgs::ColorRGBA &color,
+                               int id,
+                               const ros::Time &stamp) {
     visualization_msgs::Marker marker;
     marker.header.frame_id = "map";
     marker.header.stamp = stamp;
@@ -336,19 +353,27 @@ std::string VisualOdometry::cvTypeToRosType(int type) {
     uchar depth = type & CV_MAT_DEPTH_MASK;
     uchar chans = 1 + (type >> CV_CN_SHIFT);
 
-    switch ( depth ) {
-        case CV_8U:  r = "8U"; break;
-        case CV_8S:  r = "8S"; break;
-        case CV_16U: r = "16U"; break;
-        case CV_16S: r = "16S"; break;
-        case CV_32S: r = "32S"; break;
-        case CV_32F: r = "32F"; break;
-        case CV_64F: r = "64F"; break;
-        default:     r = "User"; break;
+    switch (depth) {
+        case CV_8U: r = "8U";
+            break;
+        case CV_8S: r = "8S";
+            break;
+        case CV_16U: r = "16U";
+            break;
+        case CV_16S: r = "16S";
+            break;
+        case CV_32S: r = "32S";
+            break;
+        case CV_32F: r = "32F";
+            break;
+        case CV_64F: r = "64F";
+            break;
+        default: r = "User";
+            break;
     }
 
     r += "C";
-    r += (chans+'0');
+    r += (chans + '0');
 
     return r;
 }

@@ -14,7 +14,6 @@
 
 #include <fub_visual_odometry/VisualOdometryConfig.h>
 
-
 #include <image_transport/image_transport.h>
 #include <dynamic_reconfigure/server.h>
 
@@ -27,38 +26,31 @@
 
 namespace fub_visual_odometry {
 
-struct Circle {
-    cv::Point center;
-    float radius;
-
-    Circle(const cv::Point& center, float radius) : center(center), radius(radius) {};
-};
-
 class VisualOdometry {
  public:
     explicit VisualOdometry(ros::NodeHandle &nh);
 
  private:
 
+    /**
+     * Map topic callback
+     * @param msg The map
+     */
     void onMap(const nav_msgs::OccupancyGridConstPtr &msg);
+
+    /**
+     * Camera callback with image and calibration data
+     * @param msg Image data
+     * @param info_msg Calibration information data
+     */
     void onImage(const sensor_msgs::ImageConstPtr &msg, const sensor_msgs::CameraInfoConstPtr &info_msg);
+
+    /**
+     * Reconfigure callback, when this callback is received the camera pose is recalculated on the next image callback
+     * @param config The new config
+     * @param level Level counter starting at 0
+     */
     void onReconfigure(VisualOdometryConfig &config, uint32_t level);
-
-    /**
-     * Finds contours inside an image. It will apply 3x3 erosion and dilation to the image to reduce noise to speed up calculation
-     * @param image Image to detect the contours in. Will be modified with erosion and dilation
-     * @param contours The detected contours without any hierarchy
-     */
-    void findContours(const cv::Mat &image, cv::OutputArrayOfArrays contours) const;
-
-    /**
-     * Detects markers in the image using contours. The found contours are sorted by their area and will be returned in
-     * the makers param. A circle is fitted onto the found contours.
-     * @param image The image to detect markers in. This should be a masked image
-     * @param markers The found circle markers will be returned here
-     * @param n Maximum number of markers to detect
-     */
-    void findBestMarkers(const cv::Mat &image, std::vector<Circle> &markers, int n) const;
 
     /**
      * Transforms a pixel coordinate into map coordinates using inverse reprojection.
@@ -66,7 +58,9 @@ class VisualOdometry {
      * @param point Pixel coordinates
      * @return A pose with the coordinates in the map frame
      */
-    geometry_msgs::Point getMapCoordinates(const image_geometry::PinholeCameraModel& cameraModel, const cv::Point2d& point, double height) const;
+    geometry_msgs::Point getMapCoordinates(const image_geometry::PinholeCameraModel &cameraModel,
+                                           const cv::Point2d &point,
+                                           double height) const;
 
     /**
      * Calculates the twist from two odometry messages
@@ -74,8 +68,9 @@ class VisualOdometry {
      * @param rear The rear point
      * @return yaw orientation
      */
-    geometry_msgs::Twist getTwist(const nav_msgs::Odometry& last, const nav_msgs::Odometry& current, const geometry_msgs::Point orientationPoint);
-
+    geometry_msgs::Twist getTwist(const nav_msgs::Odometry &last,
+                                  const nav_msgs::Odometry &current,
+                                  const geometry_msgs::Point &orientationPoint);
 
     /**
      * Calculates the yaw orientation of two points in a line using atan(front - rear)
@@ -83,7 +78,7 @@ class VisualOdometry {
      * @param rear The rear point
      * @return yaw orientation
      */
-    double getOrientation(const geometry_msgs::Point& front, const geometry_msgs::Point& rear);
+    double getOrientation(const geometry_msgs::Point &front, const geometry_msgs::Point &rear);
 
     /**
      * Publishes a visualization marker
@@ -92,9 +87,34 @@ class VisualOdometry {
      * @param id Id of the marker for updates
      * @param stamp Timestamp
      */
-    void addMarker(visualization_msgs::MarkerArray& markers, const geometry_msgs::Point& point, const std_msgs::ColorRGBA& color, int id, const ros::Time& stamp);
+    void addMarker(visualization_msgs::MarkerArray &markers,
+                   const geometry_msgs::Point &point,
+                   const std_msgs::ColorRGBA &color,
+                   int id,
+                   const ros::Time &stamp);
 
+    /**
+     * Checks the error of the camera pose by projecting the image coordinates back
+     * @param worldPoints The world points from which to calculate the error
+     * @param imagePoints The image points to check
+     * @param cameraMatrix Intrinsic camera parameters
+     * @param distCoeffs Distortion coefficients
+     * @param rvec Camera rotation vector
+     * @param tvec Camera translation vector
+     * @return RMS error of the camera pose
+     */
+    double checkCameraPose(const std::vector<cv::Point3f> &worldPoints,
+                           const std::vector<cv::Point2f> &imagePoints,
+                           const cv::Mat &cameraMatrix,
+                           const cv::Mat &distCoeffs,
+                           const cv::Mat &rvec,
+                           const cv::Mat &tvec);
 
+    /**
+     * Converts the opencv mat type to a ROS encoding type
+     * @param type The opencv mat type
+     * @return ROS encoding string describing the image encoding
+     */
     static std::string cvTypeToRosType(int type);
 
     ros::NodeHandle nodeHandle;
