@@ -124,6 +124,7 @@ class VisualOdometry {
     image_transport::Publisher detectionPublisher;
     ros::Publisher markerPublisher;
     std::unordered_map<int, ros::Publisher> odomPublishers;
+    std::unordered_map<int, nav_msgs::Odometry> lastOdometries;
 
     image_transport::CameraSubscriber imageSubscriber;
     ros::Subscriber mapSubscriber;
@@ -143,8 +144,6 @@ class VisualOdometry {
     std::vector<std::vector<cv::Point2f>> mapMarkerCorners;
 
     nav_msgs::OccupancyGridConstPtr map;
-
-    nav_msgs::Odometry lastOdometry;
 
     bool foundCamera = false;
     cv::Mat1d rotationMatrix;

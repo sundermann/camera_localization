@@ -18,6 +18,7 @@ VisualOdometry::VisualOdometry(ros::NodeHandle &nh) : tfListener(tfBuffer) {
 
     for (int i = 0; i < carDictionary->bytesList.rows; i++) {
         odomPublishers[i] = nh.advertise<nav_msgs::Odometry>(cv::format("odom/%d", i), 1);
+        lastOdometries[i] = nav_msgs::Odometry();
     }
 
     auto x = nh.param("front_marker_translation_x", 0.20);
@@ -231,30 +232,16 @@ void VisualOdometry::onImage(const sensor_msgs::ImageConstPtr &msg, const sensor
                                                                     markerTranslation.z());
 
                 tf2::Vector3 cameraTranslation(frontPoint.x, frontPoint.y, frontPoint.z);
-                geometry_msgs::TransformStamped carFrontMarkerTransform;
-                carFrontMarkerTransform.header = msg->header;
-                carFrontMarkerTransform.header.stamp = msg->header.stamp;
-                carFrontMarkerTransform.header.frame_id = "map";
-                carFrontMarkerTransform.child_frame_id = "car_front_marker";
+                geometry_msgs::TransformStamped baseLinkTransform;
+                baseLinkTransform.header = msg->header;
+                baseLinkTransform.header.stamp = msg->header.stamp;
+                baseLinkTransform.header.frame_id = "map";
+                baseLinkTransform.child_frame_id = "base_link";
                 geometry_msgs::Vector3 m;
                 tf2::convert(cameraTranslation, m);
-                carFrontMarkerTransform.transform.translation = m;
-                carFrontMarkerTransform.transform.rotation = orientation;
-                transformBroadcaster.sendTransform(carFrontMarkerTransform);
-
-                geometry_msgs::TransformStamped carBaseLinkTransform;
-                carBaseLinkTransform.header = msg->header;
-                carBaseLinkTransform.header.stamp = msg->header.stamp;
-                carBaseLinkTransform.header.frame_id = "car_front_marker";
-                carBaseLinkTransform.child_frame_id = "base_link";
-                auto baseLinkTranslation = markerTranslation * -1;
-                geometry_msgs::Vector3 baseLinkTranslationVec;
-                geometry_msgs::Quaternion identity;
-                tf2::convert(baseLinkTranslation, baseLinkTranslationVec);
-                tf2::convert(tf2::Quaternion::getIdentity(), identity);
-                carBaseLinkTransform.transform.translation = baseLinkTranslationVec;
-                carBaseLinkTransform.transform.rotation = identity;
-                transformBroadcaster.sendTransform(carBaseLinkTransform);
+                baseLinkTransform.transform.translation = m;
+                baseLinkTransform.transform.rotation = orientation;
+                transformBroadcaster.sendTransform(baseLinkTransform);
 
                 nav_msgs::Odometry odometry;
                 odometry.header.frame_id = "map";
@@ -262,10 +249,10 @@ void VisualOdometry::onImage(const sensor_msgs::ImageConstPtr &msg, const sensor
                 odometry.header.stamp = msg->header.stamp;
                 odometry.pose.pose.orientation = orientation;
                 odometry.pose.pose.position = frontPoint;
-                odometry.twist.twist = getTwist(odometry, lastOdometry, p2);
+                odometry.twist.twist = getTwist(odometry, lastOdometries[carMarkerIds[i]], p2);
                 odomPublishers[carMarkerIds[i]].publish(odometry);
 
-                lastOdometry = odometry;
+                lastOdometries[carMarkerIds[i]] = odometry;
             }
         }
 
