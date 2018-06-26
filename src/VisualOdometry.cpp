@@ -123,7 +123,7 @@ void VisualOdometry::onImage(const sensor_msgs::ImageConstPtr &msg, const sensor
             cameraTransform.header = msg->header;
             cameraTransform.header.stamp = msg->header.stamp;
             cameraTransform.header.frame_id = "map";
-            cameraTransform.child_frame_id = "cam_left";
+            cameraTransform.child_frame_id = msg->header.frame_id;
             geometry_msgs::Vector3 m;
             tf2::convert(cameraTranslation, m);
             cameraTransform.transform.translation = m;
@@ -143,43 +143,23 @@ void VisualOdometry::onImage(const sensor_msgs::ImageConstPtr &msg, const sensor
 
         if (!carMarkerCorners.empty()) {
             std::vector<cv::Vec3d> rvec, tvec;
-            cv::aruco::estimatePoseSingleMarkers(carMarkerCorners, 0.05, cameraModel.intrinsicMatrix(), cameraModel.distortionCoeffs(), rvec, tvec);
+            cv::aruco::estimatePoseSingleMarkers(carMarkerCorners, 0.095, cameraModel.intrinsicMatrix(), cameraModel.distortionCoeffs(), rvec, tvec);
 
             for (int i = 0; i < carMarkerCorners.size(); i++) {
+
+                // calculate yaw
                 std::vector<cv::Point3f> pts = { cv::Point3f(0, 0, 0), cv::Point3f(1, 0, 0)};
                 std::vector<cv::Point2f > imagePoints;
                 cv::projectPoints(pts, rvec[i], tvec[i], cameraModel.intrinsicMatrix(), cameraModel.distortionCoeffs(), imagePoints);
                 cv::line(cvDetectionImage->image, imagePoints[0], imagePoints[1], cv::Scalar(0, 0, 255), 3);
 
-                /*cv::aruco::drawAxis(cvDetectionImage->image,
-                                    cameraModel.intrinsicMatrix(),
-                                    cameraModel.distortionCoeffs(),
-                                    rvec[i],
-                                    tvec[i],
-                                    0.05)*/
-                /*auto p1 = getMapCoordinates(cameraModel, carMarkerCorners[i][0], markerTranslation.z());
-                auto p2 = getMapCoordinates(cameraModel, carMarkerCorners[i][1], markerTranslation.z());
-                auto p3 = getMapCoordinates(cameraModel, carMarkerCorners[i][2], markerTranslation.z());
-                auto p4 = getMapCoordinates(cameraModel, carMarkerCorners[i][3], markerTranslation.z());
+                auto p1 = getMapCoordinates(cameraModel, imagePoints[0], markerTranslation.z());
+                auto p2 = getMapCoordinates(cameraModel, imagePoints[1], markerTranslation.z());
+                auto yaw = getOrientation(p2, p1);
 
-
-                std::cout << yaw << std::endl;
-
-                std_msgs::ColorRGBA c;
-                c.a = 1.0;
-                c.r = 0.0;
-                c.g = 0.0;
-                c.b = 1.0;
-
-                addMarker(markers, p1, c, i, msg->header.stamp);
-                addMarker(markers, p2, c, i + 1, msg->header.stamp);
-                addMarker(markers, p3, c, i + 2, msg->header.stamp);
-                addMarker(markers, p4, c, i + 3, msg->header.stamp);*/
-
-
-                cv::Mat1d rod;
+                /*cv::Mat1d rod;
                 cv::Rodrigues(rvec[i], rod);
-                auto yaw = atan2(rod(0,0), rod(1,0));
+                auto yaw = atan2(rod(0,0), rod(1,0)); */
 
 
                 geometry_msgs::Quaternion orientation;
@@ -191,7 +171,7 @@ void VisualOdometry::onImage(const sensor_msgs::ImageConstPtr &msg, const sensor
                 auto rect= cv::boundingRect(carMarkerCorners[i]);
 
                 // This is probably not so accurate
-                geometry_msgs::Point frontPoint = getMapCoordinates(cameraModel, cv::Point2d(rect.x +rect.width /2.0, rect.y + rect.height / 2.0), 0.15);
+                geometry_msgs::Point frontPoint = getMapCoordinates(cameraModel, cv::Point2d(rect.x +rect.width /2.0, rect.y + rect.height / 2.0), markerTranslation.z());
 
                 tf2::Vector3 cameraTranslation(frontPoint.x, frontPoint.y, frontPoint.z);
                 geometry_msgs::TransformStamped carFrontMarkerTransform;
@@ -225,7 +205,10 @@ void VisualOdometry::onImage(const sensor_msgs::ImageConstPtr &msg, const sensor
                 odometry.header.stamp = msg->header.stamp;
                 odometry.pose.pose.orientation = orientation;
                 odometry.pose.pose.position = frontPoint;
+                odometry.twist.twist = getTwist(odometry, lastOdometry, p2);
                 odomPublishers[carMarkerIds[i]].publish(odometry);
+
+                lastOdometry = odometry;
             }
         }
 
@@ -237,6 +220,34 @@ void VisualOdometry::onImage(const sensor_msgs::ImageConstPtr &msg, const sensor
     detectionPublisher.publish(cvDetectionImage->toImageMsg());
 }
 
+geometry_msgs::Twist VisualOdometry::getTwist(const nav_msgs::Odometry &last, const nav_msgs::Odometry &current, const geometry_msgs::Point orientationPoint) {
+    geometry_msgs::Twist twist;
+    auto deltaTime = current.header.stamp - last.header.stamp;
+
+    // this probably means that the vehicle moved out of the camera and now moves back in
+    if (deltaTime.toSec() > 1) {
+        return twist;
+    }
+
+    tf2::Vector3 lastPos, currentPos, orientationPos;
+    tf2::convert(last.pose.pose.position, lastPos);
+    tf2::convert(current.pose.pose.position, currentPos);
+    tf2::convert(orientationPoint, orientationPos);
+
+    auto currentDirection = orientationPos - currentPos;
+    auto lastDirection = currentPos - lastPos;
+    // dot product is positive if both look into the same direction
+    auto direction = currentDirection.dot(lastDirection);
+
+    twist.linear.x = std::abs(lastPos.distance(currentPos)) / deltaTime.toSec();
+
+    if (direction < 0) {
+        twist.linear.x *= -1.0;
+    }
+
+    return twist;
+}
+
 double VisualOdometry::getOrientation(const geometry_msgs::Point& front, const geometry_msgs::Point& rear) {
     return atan2(front.y - rear.y, front.x - rear.x);
 }
@@ -244,40 +255,25 @@ double VisualOdometry::getOrientation(const geometry_msgs::Point& front, const g
 geometry_msgs::Point VisualOdometry::getMapCoordinates(const image_geometry::PinholeCameraModel& cameraModel, const cv::Point2d& point, double height) const {
     auto rectifiedPoint = cameraModel.rectifyPoint(point);
 
-    /*cv::Mat1d A(3,3);
-    auto markerCameraHeight = translationMatrix(2, 0) - height;
-    A << markerCameraHeight, 0, -translationMatrix(0, 0), 0, markerCameraHeight, -translationMatrix(1, 0), 0, 0, -1;
-    cv::Mat1d mat = A * rotationMatrix * cv::Mat(cameraModel.intrinsicMatrix().inv());*/
-    //cv::Mat p(3,1);
-    //p << rectifiedPoint.x, rectifiedPoint.y, 1.0;
+    cv::Mat1d p(3,1);
+    p << rectifiedPoint.x, rectifiedPoint.y, 1.0;
 
-    cv::Mat p = cv::Mat::ones(3,1,cv::DataType<double>::type);
-    p.at<double>(0,0) = rectifiedPoint.x;
-    p.at<double>(1,0) = rectifiedPoint.y;
-
-    /*cv::Mat1d p2 = mat * p;
-    p2 /= p2(2,0);
-
-    geometry_msgs::Point mapPoint;
-    mapPoint.x = p2[0][0];
-    mapPoint.y = p2[1][0];
-    mapPoint.z = height;*/
-
-
-    cv::Mat tempMat, tempMat2;
+    cv::Mat1d tempMat, tempMat2;
     double s = 0;
-    double zConst = height;
-    tempMat = rotationMatrix.inv() * cv::Mat(cameraModel.intrinsicMatrix().inv()) * p;
+    tempMat = rotationMatrix.inv() * cv::Mat1d(cameraModel.intrinsicMatrix().inv()) * p;
     tempMat2 = rotationMatrix.inv() * translationMatrix;
-    s = zConst + tempMat2.at<double>(2,0);
-    s /= tempMat.at<double>(2,0);
-    cv::Mat wcPoint = rotationMatrix.inv() * (s * cv::Mat(cameraModel.intrinsicMatrix().inv()) * p - translationMatrix);
+    s = height + tempMat2(2,0);
+    s /= tempMat(2,0);
+
+    cv::Mat1d wcTranslation(3,1);
+    wcTranslation << markerTranslation.x(), markerTranslation.y(), markerTranslation.z();
+    cv::Mat1d wcPoint = rotationMatrix.inv() * (s * cv::Mat(cameraModel.intrinsicMatrix().inv()) * p - translationMatrix + wcTranslation);
+    //wcPoint = (rotationMatrix.inv()) * wcPoint - wcTranslation;
 
     geometry_msgs::Point mapPoint;
-    mapPoint.x = wcPoint.at<double>(0, 0);
-    mapPoint.y = wcPoint.at<double>(1, 0);
-    mapPoint.z = wcPoint.at<double>(2, 0);
-
+    mapPoint.x = wcPoint(0, 0);
+    mapPoint.y = wcPoint(1, 0);
+    mapPoint.z = wcPoint(2, 0);
 
     return mapPoint;
 }

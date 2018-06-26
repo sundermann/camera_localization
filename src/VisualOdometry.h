@@ -68,6 +68,14 @@ class VisualOdometry {
      */
     geometry_msgs::Point getMapCoordinates(const image_geometry::PinholeCameraModel& cameraModel, const cv::Point2d& point, double height) const;
 
+    /**
+     * Calculates the twist from two odometry messages
+     * @param front The front point
+     * @param rear The rear point
+     * @return yaw orientation
+     */
+    geometry_msgs::Twist getTwist(const nav_msgs::Odometry& last, const nav_msgs::Odometry& current, const geometry_msgs::Point orientationPoint);
+
 
     /**
      * Calculates the yaw orientation of two points in a line using atan(front - rear)
@@ -114,6 +122,8 @@ class VisualOdometry {
     std::vector<std::vector<cv::Point2f>> mapMarkerCorners;
 
     nav_msgs::OccupancyGridConstPtr map;
+
+    nav_msgs::Odometry lastOdometry;
 
     bool foundCamera = false;
     cv::Mat1d rotationMatrix;
