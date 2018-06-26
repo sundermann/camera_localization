@@ -8,7 +8,7 @@ int main(int argc, char **argv)
     ros::NodeHandle nh;
     ros::NodeHandle nh_("~");
 
-    fub_visual_odometry::VisualOdometry visualOdometry(nh_);
+    fub_visual_odometry::VisualOdometry visualOdometry(nh, nh_);
 
     ros::spin();
 }

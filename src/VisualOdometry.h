@@ -28,7 +28,7 @@ namespace fub_visual_odometry {
 
 class VisualOdometry {
  public:
-    explicit VisualOdometry(ros::NodeHandle &nh);
+    explicit VisualOdometry(ros::NodeHandle &globalNodeHandle, ros::NodeHandle &privateNodeHandle);
 
  private:
 
@@ -117,7 +117,8 @@ class VisualOdometry {
      */
     static std::string cvTypeToRosType(int type);
 
-    ros::NodeHandle nodeHandle;
+    ros::NodeHandle globalNodeHandle;
+    ros::NodeHandle privateNodeHandle;
     dynamic_reconfigure::Server<VisualOdometryConfig> server;
     dynamic_reconfigure::Server<VisualOdometryConfig>::CallbackType f;
 

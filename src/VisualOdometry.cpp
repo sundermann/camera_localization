@@ -2,31 +2,32 @@
 
 namespace fub_visual_odometry {
 
-VisualOdometry::VisualOdometry(ros::NodeHandle &nh) : tfListener(tfBuffer) {
-    image_transport::ImageTransport it(nh);
-    imageSubscriber = it.subscribeCamera("/tracking/cam_left/image_raw",
+VisualOdometry::VisualOdometry(ros::NodeHandle &globalNodeHandle, ros::NodeHandle &privateNodeHandle) : tfListener(tfBuffer) {
+    image_transport::ImageTransport it(globalNodeHandle);
+    imageSubscriber = it.subscribeCamera("image_raw",
                                          10,
                                          &VisualOdometry::onImage,
                                          this,
                                          image_transport::TransportHints("compressed"));
     detectionPublisher = it.advertise("detection", 1);
-    markerPublisher = nh.advertise<visualization_msgs::MarkerArray>("marker", 1);
+    markerPublisher = globalNodeHandle.advertise<visualization_msgs::MarkerArray>("marker", 1);
 
     mapDictionary = cv::aruco::getPredefinedDictionary(cv::aruco::DICT_6X6_250);
     carDictionary = cv::aruco::getPredefinedDictionary(cv::aruco::DICT_4X4_50);
     detectorParams = cv::aruco::DetectorParameters::create();
 
     for (int i = 0; i < carDictionary->bytesList.rows; i++) {
-        odomPublishers[i] = nh.advertise<nav_msgs::Odometry>(cv::format("odom/%d", i), 1);
+        odomPublishers[i] = globalNodeHandle.advertise<nav_msgs::Odometry>(cv::format("odom/%d", i), 1);
         lastOdometries[i] = nav_msgs::Odometry();
     }
 
-    auto x = nh.param("front_marker_translation_x", 0.20);
-    auto y = nh.param("front_marker_translation_y", 0);
-    auto z = nh.param("front_marker_translation_z", 0.19);
+    auto x = privateNodeHandle.param("front_marker_translation_x", 0.20);
+    auto y = privateNodeHandle.param("front_marker_translation_y", 0);
+    auto z = privateNodeHandle.param("front_marker_translation_z", 0.19);
     markerTranslation = tf2::Vector3(x, y, z);
 
-    nodeHandle = nh;
+    this->globalNodeHandle = globalNodeHandle;
+    this->privateNodeHandle = privateNodeHandle;
 
     f = boost::bind(&VisualOdometry::onReconfigure, this, _1, _2);
     server.setCallback(f);
@@ -115,9 +116,9 @@ void VisualOdometry::onImage(const sensor_msgs::ImageConstPtr &msg, const sensor
         int i = 0;
         for (auto &&markerId : mapMarkerIds) {
             float x, y, z;
-            auto has_x = nodeHandle.getParam(cv::format("marker_%d_x", markerId), x);
-            auto has_y = nodeHandle.getParam(cv::format("marker_%d_y", markerId), y);
-            auto has_z = nodeHandle.getParam(cv::format("marker_%d_z", markerId), z);
+            auto has_x = privateNodeHandle.getParam(cv::format("marker_%d_x", markerId), x);
+            auto has_y = privateNodeHandle.getParam(cv::format("marker_%d_y", markerId), y);
+            auto has_z = privateNodeHandle.getParam(cv::format("marker_%d_z", markerId), z);
 
             if (has_x && has_y && has_z) {
                 worldCoordinates.emplace_back(x, y, z);
@@ -180,7 +181,10 @@ void VisualOdometry::onImage(const sensor_msgs::ImageConstPtr &msg, const sensor
             staticTransformBroadcaster.sendTransform(cameraTransform);
 
             foundCamera = true;
+        } else {
+            ROS_ERROR("Not enough world coordinates!");
         }
+
     }
 
     if (foundCamera) {
