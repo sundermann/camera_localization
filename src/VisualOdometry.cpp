@@ -98,11 +98,6 @@ void VisualOdometry::onImage(const sensor_msgs::ImageConstPtr &msg, const sensor
     cv::aruco::detectMarkers(cvDetectionImage->image, carDictionary, carMarkerCorners, carMarkerIds, detectorParams,
                              cv::noArray(), cameraModel.intrinsicMatrix(), cameraModel.distortionCoeffs());
 
-    if (!mapMarkerIds.empty()) {
-        cv::aruco::drawDetectedMarkers(cvDetectionImage->image, mapMarkerCorners, mapMarkerIds);
-        cv::aruco::drawDetectedMarkers(cvDetectionImage->image, carMarkerCorners, carMarkerIds);
-    }
-
     if (!foundCamera) {
         cv::aruco::detectMarkers(cvDetectionImage->image, mapDictionary, mapMarkerCorners, mapMarkerIds, detectorParams,
                                  cv::noArray(), cameraModel.intrinsicMatrix(), cameraModel.distortionCoeffs());
@@ -184,6 +179,11 @@ void VisualOdometry::onImage(const sensor_msgs::ImageConstPtr &msg, const sensor
             ROS_ERROR("Not enough world coordinates!");
         }
 
+    }
+
+    if (!mapMarkerIds.empty()) {
+        cv::aruco::drawDetectedMarkers(cvDetectionImage->image, mapMarkerCorners, mapMarkerIds);
+        cv::aruco::drawDetectedMarkers(cvDetectionImage->image, carMarkerCorners, carMarkerIds);
     }
 
     if (foundCamera) {
@@ -304,6 +304,11 @@ geometry_msgs::Twist VisualOdometry::getTwist(const nav_msgs::Odometry &last,
     if (direction < 0) {
         twist.linear.x *= -1.0;
     }
+
+    // angular velocity
+    tf2::Quaternion lastOrientation, currentOrientation;
+    tf2::convert(last.pose.pose.orientation, lastOrientation);
+    twist.angular.z = (tf2::getYaw(currentOrientation) - tf2::getYaw(lastOrientation)) / deltaTime.toSec();
 
     return twist;
 }

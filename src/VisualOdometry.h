@@ -1,6 +1,7 @@
 #pragma once
 #include <ros/ros.h>
 
+#include <tf2/utils.h>
 #include <tf2_ros/transform_listener.h>
 #include <tf2_ros/static_transform_broadcaster.h>
 #include <tf2_ros/transform_broadcaster.h>
