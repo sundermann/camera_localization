@@ -27,11 +27,11 @@ dictitems:
       id: 0
       markerBorderBits: 1
       maxErroneousBitsInBorderRate: 0.35
-      maxMarkerPerimeterRate: 1.0
+      maxMarkerPerimeterRate: 0.2
       minCornerDistanceRate: 0.05
       minDistanceToBorder: 3
       minMarkerDistanceRate: 0.05
-      minMarkerPerimeterRate: 0.03
+      minMarkerPerimeterRate: 0.06
       minOtsuStdDev: 5.0
       name: Default
       parameters: !!python/object/new:dynamic_reconfigure.encoding.Config
@@ -45,11 +45,11 @@ dictitems:
     state: []
   markerBorderBits: 1
   maxErroneousBitsInBorderRate: 0.35
-  maxMarkerPerimeterRate: 1.0
+  maxMarkerPerimeterRate: 0.2
   minCornerDistanceRate: 0.05
   minDistanceToBorder: 3
   minMarkerDistanceRate: 0.05
-  minMarkerPerimeterRate: 0.03
+  minMarkerPerimeterRate: 0.06
   minOtsuStdDev: 5.0
   perspectiveRemoveIgnoredMarginPerCell: 0.13
   perspectiveRemovePixelPerCell: 4
