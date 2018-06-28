@@ -308,6 +308,7 @@ geometry_msgs::Twist VisualOdometry::getTwist(const nav_msgs::Odometry &last,
     // angular velocity
     tf2::Quaternion lastOrientation, currentOrientation;
     tf2::convert(last.pose.pose.orientation, lastOrientation);
+    tf2::convert(current.pose.pose.orientation, currentOrientation);
     twist.angular.z = (tf2::getYaw(currentOrientation) - tf2::getYaw(lastOrientation)) / deltaTime.toSec();
 
     return twist;
