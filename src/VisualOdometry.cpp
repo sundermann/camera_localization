@@ -248,7 +248,7 @@ void VisualOdometry::onImage(const sensor_msgs::ImageConstPtr &msg, const sensor
                 baseLinkTransform.header = msg->header;
                 baseLinkTransform.header.stamp = msg->header.stamp;
                 baseLinkTransform.header.frame_id = "map";
-                baseLinkTransform.child_frame_id = "base_link";
+                baseLinkTransform.child_frame_id = cv::format("car_%d/base_link", carMarkerIds[i]);
                 geometry_msgs::Vector3 baseLinkTransformVector;
                 tf2::convert(baseLinkVector, baseLinkTransformVector);
                 baseLinkTransform.transform.translation = baseLinkTransformVector;
