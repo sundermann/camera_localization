@@ -16,6 +16,8 @@ VisualOdometry::VisualOdometry(ros::NodeHandle &globalNodeHandle, ros::NodeHandl
     mapDictionary = cv::aruco::getPredefinedDictionary(cv::aruco::DICT_6X6_250);
     carDictionary = cv::aruco::getPredefinedDictionary(cv::aruco::DICT_4X4_50);
     detectorParams = cv::aruco::DetectorParameters::create();
+    translationMatrix = cv::Mat1d::zeros(3, 1);
+
 
     for (int i = 0; i < carDictionary->bytesList.rows; i++) {
         odomPublishers[i] = globalNodeHandle.advertise<nav_msgs::Odometry>(cv::format("odom/%d", i), 1);
@@ -102,31 +104,52 @@ void VisualOdometry::onImage(const sensor_msgs::ImageConstPtr &msg, const sensor
         cv::aruco::detectMarkers(cvDetectionImage->image, mapDictionary, mapMarkerCorners, mapMarkerIds, detectorParams,
                                  cv::noArray(), cameraModel.intrinsicMatrix(), cameraModel.distortionCoeffs());
 
-        cv::Mat1d rvec = cv::Mat1d::zeros(3, 1);
-        translationMatrix = cv::Mat1d::zeros(3, 1);
 
         std::vector<cv::Point3f> worldCoordinates;
         std::vector<cv::Point2f> imageCoordinates;
         int i = 0;
-        for (auto &&markerId : mapMarkerIds) {
+
+        std::vector<cv::Vec3d> markerRvec, markerTvec;
+        if (!mapMarkerCorners.empty()) {
+            cv::aruco::estimatePoseSingleMarkers(mapMarkerCorners,
+                                                 0.25,
+                                                 cameraModel.intrinsicMatrix(),
+                                                 cameraModel.distortionCoeffs(),
+                                                 markerRvec,
+                                                 markerTvec);
+        }
+
+        for (const auto &markerId : mapMarkerIds) {
             float x, y, z;
             auto has_x = privateNodeHandle.getParam(cv::format("marker_%d_x", markerId), x);
             auto has_y = privateNodeHandle.getParam(cv::format("marker_%d_y", markerId), y);
             auto has_z = privateNodeHandle.getParam(cv::format("marker_%d_z", markerId), z);
 
+            // Project the marker center into the image to get the coordinates
+            std::vector<cv::Point3f> pts = {cv::Point3f(0, 0, 0)};
+            std::vector<cv::Point2f> imagePoints;
+            cv::projectPoints(pts,
+                              markerRvec[i],
+                              markerTvec[i],
+                              cameraModel.intrinsicMatrix(),
+                              cameraModel.distortionCoeffs(),
+                              imagePoints);
+
+
             if (has_x && has_y && has_z) {
                 worldCoordinates.emplace_back(x, y, z);
                 auto marker = mapMarkerCorners[i];
-                auto rect = cv::boundingRect(marker);
 
                 // This is probably not so accurate
-                imageCoordinates.emplace_back(rect.x + rect.width / 2.0f, rect.y + rect.height / 2.0f);
+                imageCoordinates.emplace_back(imagePoints[0]);
             }
 
             i++;
         }
 
         if (worldCoordinates.size() >= 4) {
+            cv::Mat1d rvec = cv::Mat1d::zeros(3, 1);
+            translationMatrix = cv::Mat1d::zeros(3, 1);
 
             cv::solvePnP(worldCoordinates,
                          imageCoordinates,
@@ -226,8 +249,6 @@ void VisualOdometry::onImage(const sensor_msgs::ImageConstPtr &msg, const sensor
                 orientation.z = sin(yaw / 2.0);
                 orientation.w = cos(yaw / 2.0);
 
-                auto rect = cv::boundingRect(carMarkerCorners[i]);
-
                 // Get marker coordinates
                 geometry_msgs::Point markerPoint = getMapCoordinates(cameraModel,
                                                                      imagePoints[0],
@@ -323,21 +344,20 @@ geometry_msgs::Point VisualOdometry::getMapCoordinates(const image_geometry::Pin
                                                        double height) const {
     auto rectifiedPoint = cameraModel.rectifyPoint(point);
 
-    cv::Mat1d p(3, 1);
-    p << rectifiedPoint.x, rectifiedPoint.y, 1.0;
+    cv::Mat1d imagePoint(3, 1);
+    imagePoint << rectifiedPoint.x, rectifiedPoint.y, 1.0;
 
-    cv::Mat1d tempMat, tempMat2;
-    double s = 0;
-    tempMat = rotationMatrix.inv() * cv::Mat1d(cameraModel.intrinsicMatrix().inv()) * p;
-    tempMat2 = rotationMatrix.inv() * translationMatrix;
-    s = height + tempMat2(2, 0);
-    s /= tempMat(2, 0);
+    cv::Mat1d pointCameraCoordinates, cameraPosition;
+    double scale = 0;
+    pointCameraCoordinates = rotationMatrix.inv() * cv::Mat1d(cameraModel.intrinsicMatrix().inv()) * imagePoint;
+    cameraPosition = rotationMatrix.inv() * translationMatrix;
+    scale = height + cameraPosition(2, 0);
+    scale /= pointCameraCoordinates(2, 0);
 
     cv::Mat1d wcTranslation(3, 1);
     wcTranslation << markerTranslation.x(), markerTranslation.y(), markerTranslation.z();
     cv::Mat1d wcPoint = rotationMatrix.inv()
-        * (s * cv::Mat(cameraModel.intrinsicMatrix().inv()) * p - translationMatrix);
-    //wcPoint = (rotationMatrix.inv()) * wcPoint - wcTranslation;
+        * (scale * cv::Mat(cameraModel.intrinsicMatrix().inv()) * imagePoint - translationMatrix);
 
     geometry_msgs::Point mapPoint;
     mapPoint.x = wcPoint(0, 0);
