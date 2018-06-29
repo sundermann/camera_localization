@@ -83,9 +83,8 @@ void VisualOdometry::onMap(const nav_msgs::OccupancyGridConstPtr &msg) {
 void VisualOdometry::onImage(const sensor_msgs::ImageConstPtr &msg, const sensor_msgs::CameraInfoConstPtr &info_msg) {
     cv_bridge::CvImagePtr cvDetectionImage;
 
-    cv::waitKey(1);
     try {
-        cvDetectionImage = cv_bridge::toCvCopy(msg, sensor_msgs::image_encodings::BGR8);
+        cvDetectionImage = cv_bridge::toCvCopy(msg, sensor_msgs::image_encodings::MONO8);
     }
     catch (cv_bridge::Exception &e) {
         ROS_ERROR("cv_bridge exception: %s", e.what());
@@ -232,7 +231,7 @@ void VisualOdometry::onImage(const sensor_msgs::ImageConstPtr &msg, const sensor
                                   cameraModel.intrinsicMatrix(),
                                   cameraModel.distortionCoeffs(),
                                   imagePoints);
-                cv::line(cvDetectionImage->image, imagePoints[0], imagePoints[1], cv::Scalar(0, 0, 255), 3);
+                cv::line(cvDetectionImage->image, imagePoints[0], imagePoints[1], cv::Scalar(255, 255, 255), 3);
 
                 auto p1 = getMapCoordinates(cameraModel, imagePoints[0], markerTranslation.z());
                 auto p2 = getMapCoordinates(cameraModel, imagePoints[1], markerTranslation.z());
@@ -296,7 +295,7 @@ void VisualOdometry::onImage(const sensor_msgs::ImageConstPtr &msg, const sensor
     }
 
     cvDetectionImage->encoding = cvTypeToRosType(cvDetectionImage->image.type());
-    detectionPublisher.publish(cvDetectionImage->toImageMsg());
+    //detectionPublisher.publish(cvDetectionImage->toImageMsg());
 }
 
 geometry_msgs::Twist VisualOdometry::getTwist(const nav_msgs::Odometry &last,
