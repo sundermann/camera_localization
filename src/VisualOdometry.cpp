@@ -2,14 +2,12 @@
 
 namespace fub_visual_odometry {
 
-VisualOdometry::VisualOdometry(ros::NodeHandle &globalNodeHandle, ros::NodeHandle &privateNodeHandle) : tfListener(
-    tfBuffer) {
+VisualOdometry::VisualOdometry(ros::NodeHandle &globalNodeHandle, ros::NodeHandle &privateNodeHandle) {
     image_transport::ImageTransport it(globalNodeHandle);
     imageSubscriber = it.subscribeCamera("image_raw",
                                          10,
                                          &VisualOdometry::onImage,
-                                         this,
-                                         image_transport::TransportHints("compressed"));
+                                         this);
     detectionPublisher = it.advertise("detection", 1);
     markerPublisher = globalNodeHandle.advertise<visualization_msgs::MarkerArray>("marker", 1);
 
@@ -300,7 +298,7 @@ void VisualOdometry::onImage(const sensor_msgs::ImageConstPtr &msg, const sensor
 
 geometry_msgs::Twist VisualOdometry::getTwist(const nav_msgs::Odometry &last,
                                               const nav_msgs::Odometry &current,
-                                              const geometry_msgs::Point &orientationPoint) {
+                                              const geometry_msgs::Point &orientationPoint) const {
     geometry_msgs::Twist twist;
     auto deltaTime = current.header.stamp - last.header.stamp;
 
@@ -334,7 +332,7 @@ geometry_msgs::Twist VisualOdometry::getTwist(const nav_msgs::Odometry &last,
     return twist;
 }
 
-double VisualOdometry::getOrientation(const geometry_msgs::Point &front, const geometry_msgs::Point &rear) {
+double VisualOdometry::getOrientation(const geometry_msgs::Point &front, const geometry_msgs::Point &rear) const {
     return atan2(front.y - rear.y, front.x - rear.x);
 }
 
@@ -371,7 +369,7 @@ double VisualOdometry::checkCameraPose(const std::vector<cv::Point3f> &worldPoin
                                        const cv::Mat &cameraMatrix,
                                        const cv::Mat &distCoeffs,
                                        const cv::Mat &rvec,
-                                       const cv::Mat &tvec) {
+                                       const cv::Mat &tvec) const {
     std::vector<cv::Point2f> projectedPts;
     cv::projectPoints(worldPoints, rvec, tvec, cameraMatrix, distCoeffs, projectedPts);
 

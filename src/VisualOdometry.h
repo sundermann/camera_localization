@@ -71,7 +71,7 @@ class VisualOdometry {
      */
     geometry_msgs::Twist getTwist(const nav_msgs::Odometry &last,
                                   const nav_msgs::Odometry &current,
-                                  const geometry_msgs::Point &orientationPoint);
+                                  const geometry_msgs::Point &orientationPoint) const;
 
     /**
      * Calculates the yaw orientation of two points in a line using atan(front - rear)
@@ -79,7 +79,7 @@ class VisualOdometry {
      * @param rear The rear point
      * @return yaw orientation
      */
-    double getOrientation(const geometry_msgs::Point &front, const geometry_msgs::Point &rear);
+    double getOrientation(const geometry_msgs::Point &front, const geometry_msgs::Point &rear) const;
 
     /**
      * Publishes a visualization marker
@@ -109,7 +109,7 @@ class VisualOdometry {
                            const cv::Mat &cameraMatrix,
                            const cv::Mat &distCoeffs,
                            const cv::Mat &rvec,
-                           const cv::Mat &tvec);
+                           const cv::Mat &tvec) const;
 
     /**
      * Converts the opencv mat type to a ROS encoding type
@@ -133,8 +133,6 @@ class VisualOdometry {
 
     tf2_ros::StaticTransformBroadcaster staticTransformBroadcaster;
     tf2_ros::TransformBroadcaster transformBroadcaster;
-    tf2_ros::Buffer tfBuffer;
-    tf2_ros::TransformListener tfListener;
     tf2::Vector3 markerTranslation;
 
     VisualOdometryConfig config;
