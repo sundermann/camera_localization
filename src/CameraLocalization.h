@@ -25,11 +25,11 @@
 #include <opencv2/aruco/charuco.hpp>
 #include <image_geometry/pinhole_camera_model.h>
 
-namespace fub_visual_odometry {
+namespace camera_localization {
 
-class VisualOdometry {
+class CameraLocalization {
  public:
-    explicit VisualOdometry(ros::NodeHandle &globalNodeHandle, ros::NodeHandle &privateNodeHandle);
+    explicit CameraLocalization(ros::NodeHandle &globalNodeHandle, ros::NodeHandle &privateNodeHandle);
 
  private:
 

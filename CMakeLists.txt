@@ -1,6 +1,6 @@
 cmake_minimum_required(VERSION 2.8.3)
 add_definitions(-std=c++11)
-project(fub_visual_odometry)
+project(camera_localization)
 
 ## Find catkin macros and libraries
 ## if COMPONENTS list like find_package(catkin REQUIRED COMPONENTS xyz)
@@ -35,7 +35,7 @@ include_directories(
         ${OpenCV_INCLUDE_DIRS}
 )
 
-add_executable(${PROJECT_NAME}_node src/VisualOdometry.cpp src/VisualOdometryNode.cpp src/VisualOdometry.h)
+add_executable(${PROJECT_NAME}_node src/CameraLocalization.cpp src/CameraLocalizationNode.cpp src/CameraLocalization.h)
 add_dependencies(${PROJECT_NAME}_node ${PROJECT_NAME}_gencfg)
 target_link_libraries(${PROJECT_NAME}_node ${catkin_LIBRARIES} ${OpenCV_LIBRARIES})
 

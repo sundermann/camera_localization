@@ -1,12 +1,12 @@
-#include "VisualOdometry.h"
+#include "CameraLocalization.h"
 
-namespace fub_visual_odometry {
+namespace camera_localization {
 
-VisualOdometry::VisualOdometry(ros::NodeHandle &globalNodeHandle, ros::NodeHandle &privateNodeHandle) {
+CameraLocalization::CameraLocalization(ros::NodeHandle &globalNodeHandle, ros::NodeHandle &privateNodeHandle) {
     image_transport::ImageTransport it(globalNodeHandle);
     imageSubscriber = it.subscribeCamera("image_raw",
                                          10,
-                                         &VisualOdometry::onImage,
+                                         &CameraLocalization::onImage,
                                          this);
     detectionPublisher = it.advertise("detection", 1);
     markerPublisher = globalNodeHandle.advertise<visualization_msgs::MarkerArray>("marker", 1);
@@ -30,11 +30,11 @@ VisualOdometry::VisualOdometry(ros::NodeHandle &globalNodeHandle, ros::NodeHandl
     this->globalNodeHandle = globalNodeHandle;
     this->privateNodeHandle = privateNodeHandle;
 
-    f = boost::bind(&VisualOdometry::onReconfigure, this, _1, _2);
+    f = boost::bind(&CameraLocalization::onReconfigure, this, _1, _2);
     server.setCallback(f);
 }
 
-void VisualOdometry::onReconfigure(VisualOdometryConfig &config, uint32_t level) {
+void CameraLocalization::onReconfigure(VisualOdometryConfig &config, uint32_t level) {
     this->config = config;
 
     detectorParams->adaptiveThreshConstant = config.adaptiveThreshConstant;
@@ -74,11 +74,11 @@ void VisualOdometry::onReconfigure(VisualOdometryConfig &config, uint32_t level)
     foundCamera = false;
 }
 
-void VisualOdometry::onMap(const nav_msgs::OccupancyGridConstPtr &msg) {
+void CameraLocalization::onMap(const nav_msgs::OccupancyGridConstPtr &msg) {
     map = msg;
 }
 
-void VisualOdometry::onImage(const sensor_msgs::ImageConstPtr &msg, const sensor_msgs::CameraInfoConstPtr &info_msg) {
+void CameraLocalization::onImage(const sensor_msgs::ImageConstPtr &msg, const sensor_msgs::CameraInfoConstPtr &info_msg) {
     cv_bridge::CvImagePtr cvDetectionImage;
 
     try {
@@ -296,7 +296,7 @@ void VisualOdometry::onImage(const sensor_msgs::ImageConstPtr &msg, const sensor
     //detectionPublisher.publish(cvDetectionImage->toImageMsg());
 }
 
-geometry_msgs::Twist VisualOdometry::getTwist(const nav_msgs::Odometry &last,
+geometry_msgs::Twist CameraLocalization::getTwist(const nav_msgs::Odometry &last,
                                               const nav_msgs::Odometry &current,
                                               const geometry_msgs::Point &orientationPoint) const {
     geometry_msgs::Twist twist;
@@ -332,11 +332,11 @@ geometry_msgs::Twist VisualOdometry::getTwist(const nav_msgs::Odometry &last,
     return twist;
 }
 
-double VisualOdometry::getOrientation(const geometry_msgs::Point &front, const geometry_msgs::Point &rear) const {
+double CameraLocalization::getOrientation(const geometry_msgs::Point &front, const geometry_msgs::Point &rear) const {
     return atan2(front.y - rear.y, front.x - rear.x);
 }
 
-geometry_msgs::Point VisualOdometry::getMapCoordinates(const image_geometry::PinholeCameraModel &cameraModel,
+geometry_msgs::Point CameraLocalization::getMapCoordinates(const image_geometry::PinholeCameraModel &cameraModel,
                                                        const cv::Point2d &point,
                                                        double height) const {
     auto rectifiedPoint = cameraModel.rectifyPoint(point);
@@ -364,7 +364,7 @@ geometry_msgs::Point VisualOdometry::getMapCoordinates(const image_geometry::Pin
     return mapPoint;
 }
 
-double VisualOdometry::checkCameraPose(const std::vector<cv::Point3f> &worldPoints,
+double CameraLocalization::checkCameraPose(const std::vector<cv::Point3f> &worldPoints,
                                        const std::vector<cv::Point2f> &imagePoints,
                                        const cv::Mat &cameraMatrix,
                                        const cv::Mat &distCoeffs,
@@ -382,7 +382,7 @@ double VisualOdometry::checkCameraPose(const std::vector<cv::Point3f> &worldPoin
     return sqrt(rms / projectedPts.size());
 }
 
-void VisualOdometry::addMarker(visualization_msgs::MarkerArray &markers,
+void CameraLocalization::addMarker(visualization_msgs::MarkerArray &markers,
                                const geometry_msgs::Point &point,
                                const std_msgs::ColorRGBA &color,
                                int id,
@@ -405,7 +405,7 @@ void VisualOdometry::addMarker(visualization_msgs::MarkerArray &markers,
     markers.markers.push_back(marker);
 }
 
-std::string VisualOdometry::cvTypeToRosType(int type) {
+std::string CameraLocalization::cvTypeToRosType(int type) {
     std::string r;
 
     uchar depth = type & CV_MAT_DEPTH_MASK;

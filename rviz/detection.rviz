@@ -153,7 +153,7 @@ Visualization Manager:
       Value: true
     - Class: rviz/MarkerArray
       Enabled: true
-      Marker Topic: /fub_visual_odometry/marker
+      Marker Topic: /camera_localization/marker
       Name: Detected Markers
       Namespaces:
         {}

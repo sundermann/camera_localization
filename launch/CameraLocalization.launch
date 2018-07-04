@@ -1,6 +1,6 @@
 <launch>
-    <node name="detection_right_params_load" pkg="dynamic_reconfigure" type="dynparam"  args="load /localization/cam_left/detection $(find fub_visual_odometry)/params/config.yaml" />
-    <node name="detection" pkg="fub_visual_odometry" type="fub_visual_odometry_node" ns="/localization/cam_left/">
+    <node name="detection_right_params_load" pkg="dynamic_reconfigure" type="dynparam"  args="load /localization/cam_left/detection $(find camera_localization)/params/config.yaml" />
+    <node name="detection" pkg="camera_localization" type="fub_visual_odometry_node" ns="/localization/cam_left/">
         <remap from="/localization/cam_left/odom/0" to="/localization/odom/0" />
         <remap from="/localization/cam_left/odom/1" to="/localization/odom/1" />
         <remap from="/localization/cam_left/odom/2" to="/localization/odom/2" />
@@ -99,8 +99,8 @@
         <param name="marker_9_z" value="0.0" />
     </node>
 
-    <node name="detection_left_params_load" pkg="dynamic_reconfigure" type="dynparam"  args="load /localization/cam_right/detection $(find fub_visual_odometry)/params/config.yaml" />
-    <node name="detection" pkg="fub_visual_odometry" type="fub_visual_odometry_node" ns="/localization/cam_right/">
+    <node name="detection_left_params_load" pkg="dynamic_reconfigure" type="dynparam"  args="load /localization/cam_right/detection $(find camera_localization)/params/config.yaml" />
+    <node name="detection" pkg="camera_localization" type="fub_visual_odometry_node" ns="/localization/cam_right/">
         <remap from="/localization/cam_right/odom/0" to="/localization/odom/0" />
         <remap from="/localization/cam_right/odom/1" to="/localization/odom/1" />
         <remap from="/localization/cam_right/odom/2" to="/localization/odom/2" />
