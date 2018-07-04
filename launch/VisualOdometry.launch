@@ -1,6 +1,58 @@
 <launch>
-    <node name="detection_right_params_load" pkg="dynamic_reconfigure" type="dynparam"  args="load /tracking/cam_left/detection $(find fub_visual_odometry)/params/config.yaml" />
-    <node name="detection" pkg="fub_visual_odometry" type="fub_visual_odometry_node" ns="/tracking/cam_left/">
+    <node name="detection_right_params_load" pkg="dynamic_reconfigure" type="dynparam"  args="load /localization/cam_left/detection $(find fub_visual_odometry)/params/config.yaml" />
+    <node name="detection" pkg="fub_visual_odometry" type="fub_visual_odometry_node" ns="/localization/cam_left/">
+        <remap from="/localization/cam_left/odom/0" to="/localization/odom/0" />
+        <remap from="/localization/cam_left/odom/1" to="/localization/odom/1" />
+        <remap from="/localization/cam_left/odom/2" to="/localization/odom/2" />
+        <remap from="/localization/cam_left/odom/3" to="/localization/odom/3" />
+        <remap from="/localization/cam_left/odom/4" to="/localization/odom/4" />
+        <remap from="/localization/cam_left/odom/5" to="/localization/odom/5" />
+        <remap from="/localization/cam_left/odom/6" to="/localization/odom/6" />
+        <remap from="/localization/cam_left/odom/7" to="/localization/odom/7" />
+        <remap from="/localization/cam_left/odom/8" to="/localization/odom/8" />
+        <remap from="/localization/cam_left/odom/9" to="/localization/odom/9" />
+        <remap from="/localization/cam_left/odom/10" to="/localization/odom/10" />
+        <remap from="/localization/cam_left/odom/11" to="/localization/odom/11" />
+        <remap from="/localization/cam_left/odom/12" to="/localization/odom/12" />
+        <remap from="/localization/cam_left/odom/13" to="/localization/odom/13" />
+        <remap from="/localization/cam_left/odom/14" to="/localization/odom/14" />
+        <remap from="/localization/cam_left/odom/15" to="/localization/odom/15" />
+        <remap from="/localization/cam_left/odom/16" to="/localization/odom/16" />
+        <remap from="/localization/cam_left/odom/17" to="/localization/odom/17" />
+        <remap from="/localization/cam_left/odom/18" to="/localization/odom/18" />
+        <remap from="/localization/cam_left/odom/19" to="/localization/odom/19" />
+        <remap from="/localization/cam_left/odom/20" to="/localization/odom/20" />
+        <remap from="/localization/cam_left/odom/21" to="/localization/odom/21" />
+        <remap from="/localization/cam_left/odom/22" to="/localization/odom/22" />
+        <remap from="/localization/cam_left/odom/23" to="/localization/odom/23" />
+        <remap from="/localization/cam_left/odom/24" to="/localization/odom/24" />
+        <remap from="/localization/cam_left/odom/25" to="/localization/odom/25" />
+        <remap from="/localization/cam_left/odom/26" to="/localization/odom/26" />
+        <remap from="/localization/cam_left/odom/27" to="/localization/odom/27" />
+        <remap from="/localization/cam_left/odom/28" to="/localization/odom/28" />
+        <remap from="/localization/cam_left/odom/29" to="/localization/odom/29" />
+        <remap from="/localization/cam_left/odom/30" to="/localization/odom/30" />
+        <remap from="/localization/cam_left/odom/31" to="/localization/odom/31" />
+        <remap from="/localization/cam_left/odom/32" to="/localization/odom/32" />
+        <remap from="/localization/cam_left/odom/33" to="/localization/odom/33" />
+        <remap from="/localization/cam_left/odom/34" to="/localization/odom/34" />
+        <remap from="/localization/cam_left/odom/35" to="/localization/odom/35" />
+        <remap from="/localization/cam_left/odom/36" to="/localization/odom/36" />
+        <remap from="/localization/cam_left/odom/37" to="/localization/odom/37" />
+        <remap from="/localization/cam_left/odom/38" to="/localization/odom/38" />
+        <remap from="/localization/cam_left/odom/39" to="/localization/odom/39" />
+        <remap from="/localization/cam_left/odom/40" to="/localization/odom/40" />
+        <remap from="/localization/cam_left/odom/41" to="/localization/odom/41" />
+        <remap from="/localization/cam_left/odom/42" to="/localization/odom/42" />
+        <remap from="/localization/cam_left/odom/43" to="/localization/odom/43" />
+        <remap from="/localization/cam_left/odom/44" to="/localization/odom/44" />
+        <remap from="/localization/cam_left/odom/45" to="/localization/odom/45" />
+        <remap from="/localization/cam_left/odom/46" to="/localization/odom/46" />
+        <remap from="/localization/cam_left/odom/47" to="/localization/odom/47" />
+        <remap from="/localization/cam_left/odom/48" to="/localization/odom/48" />
+        <remap from="/localization/cam_left/odom/49" to="/localization/odom/49" />
+        <remap from="/localization/cam_left/odom/50" to="/localization/odom/50" />
+
         <!-- car marker translation in respect to base_link -->
         <param name="front_marker_translation_x" value="0.20" />
         <param name="front_marker_translation_y" value="0" />
@@ -47,8 +99,60 @@
         <param name="marker_9_z" value="0.0" />
     </node>
 
-    <node name="detection_left_params_load" pkg="dynamic_reconfigure" type="dynparam"  args="load /tracking/cam_right/detection $(find fub_visual_odometry)/params/config.yaml" />
-    <node name="detection" pkg="fub_visual_odometry" type="fub_visual_odometry_node" ns="/tracking/cam_right/">
+    <node name="detection_left_params_load" pkg="dynamic_reconfigure" type="dynparam"  args="load /localization/cam_right/detection $(find fub_visual_odometry)/params/config.yaml" />
+    <node name="detection" pkg="fub_visual_odometry" type="fub_visual_odometry_node" ns="/localization/cam_right/">
+        <remap from="/localization/cam_right/odom/0" to="/localization/odom/0" />
+        <remap from="/localization/cam_right/odom/1" to="/localization/odom/1" />
+        <remap from="/localization/cam_right/odom/2" to="/localization/odom/2" />
+        <remap from="/localization/cam_right/odom/3" to="/localization/odom/3" />
+        <remap from="/localization/cam_right/odom/4" to="/localization/odom/4" />
+        <remap from="/localization/cam_right/odom/5" to="/localization/odom/5" />
+        <remap from="/localization/cam_right/odom/6" to="/localization/odom/6" />
+        <remap from="/localization/cam_right/odom/7" to="/localization/odom/7" />
+        <remap from="/localization/cam_right/odom/8" to="/localization/odom/8" />
+        <remap from="/localization/cam_right/odom/9" to="/localization/odom/9" />
+        <remap from="/localization/cam_right/odom/10" to="/localization/odom/10" />
+        <remap from="/localization/cam_right/odom/11" to="/localization/odom/11" />
+        <remap from="/localization/cam_right/odom/12" to="/localization/odom/12" />
+        <remap from="/localization/cam_right/odom/13" to="/localization/odom/13" />
+        <remap from="/localization/cam_right/odom/14" to="/localization/odom/14" />
+        <remap from="/localization/cam_right/odom/15" to="/localization/odom/15" />
+        <remap from="/localization/cam_right/odom/16" to="/localization/odom/16" />
+        <remap from="/localization/cam_right/odom/17" to="/localization/odom/17" />
+        <remap from="/localization/cam_right/odom/18" to="/localization/odom/18" />
+        <remap from="/localization/cam_right/odom/19" to="/localization/odom/19" />
+        <remap from="/localization/cam_right/odom/20" to="/localization/odom/20" />
+        <remap from="/localization/cam_right/odom/21" to="/localization/odom/21" />
+        <remap from="/localization/cam_right/odom/22" to="/localization/odom/22" />
+        <remap from="/localization/cam_right/odom/23" to="/localization/odom/23" />
+        <remap from="/localization/cam_right/odom/24" to="/localization/odom/24" />
+        <remap from="/localization/cam_right/odom/25" to="/localization/odom/25" />
+        <remap from="/localization/cam_right/odom/26" to="/localization/odom/26" />
+        <remap from="/localization/cam_right/odom/27" to="/localization/odom/27" />
+        <remap from="/localization/cam_right/odom/28" to="/localization/odom/28" />
+        <remap from="/localization/cam_right/odom/29" to="/localization/odom/29" />
+        <remap from="/localization/cam_right/odom/30" to="/localization/odom/30" />
+        <remap from="/localization/cam_right/odom/31" to="/localization/odom/31" />
+        <remap from="/localization/cam_right/odom/32" to="/localization/odom/32" />
+        <remap from="/localization/cam_right/odom/33" to="/localization/odom/33" />
+        <remap from="/localization/cam_right/odom/34" to="/localization/odom/34" />
+        <remap from="/localization/cam_right/odom/35" to="/localization/odom/35" />
+        <remap from="/localization/cam_right/odom/36" to="/localization/odom/36" />
+        <remap from="/localization/cam_right/odom/37" to="/localization/odom/37" />
+        <remap from="/localization/cam_right/odom/38" to="/localization/odom/38" />
+        <remap from="/localization/cam_right/odom/39" to="/localization/odom/39" />
+        <remap from="/localization/cam_right/odom/40" to="/localization/odom/40" />
+        <remap from="/localization/cam_right/odom/41" to="/localization/odom/41" />
+        <remap from="/localization/cam_right/odom/42" to="/localization/odom/42" />
+        <remap from="/localization/cam_right/odom/43" to="/localization/odom/43" />
+        <remap from="/localization/cam_right/odom/44" to="/localization/odom/44" />
+        <remap from="/localization/cam_right/odom/45" to="/localization/odom/45" />
+        <remap from="/localization/cam_right/odom/46" to="/localization/odom/46" />
+        <remap from="/localization/cam_right/odom/47" to="/localization/odom/47" />
+        <remap from="/localization/cam_right/odom/48" to="/localization/odom/48" />
+        <remap from="/localization/cam_right/odom/49" to="/localization/odom/49" />
+        <remap from="/localization/cam_right/odom/50" to="/localization/odom/50" />
+
         <!-- car marker translation in respect to base_link -->
         <param name="front_marker_translation_x" value="0.20" />
         <param name="front_marker_translation_y" value="0" />
@@ -94,5 +198,4 @@
         <param name="marker_9_y" value="2.615" />
         <param name="marker_9_z" value="0.0" />
     </node>
-
 </launch>
