@@ -129,7 +129,7 @@ Visualization Manager:
       Value: false
     - Class: rviz/Image
       Enabled: true
-      Image Topic: /tracking/cam_left/detection
+      Image Topic: /localization/cam_left/detection
       Max Value: 1
       Median window: 5
       Min Value: 0
@@ -141,7 +141,7 @@ Visualization Manager:
       Value: true
     - Class: rviz/Image
       Enabled: true
-      Image Topic: /tracking/cam_right/detection
+      Image Topic: /localization/cam_right/detection
       Max Value: 1
       Median window: 5
       Min Value: 0
@@ -176,9 +176,9 @@ Visualization Manager:
           Value: true
         odom:
           Value: true
-        tracking_cam_left:
+        localization_cam_left:
           Value: true
-        tracking_cam_right:
+        localization_cam_right:
           Value: true
       Marker Scale: 1
       Name: TF
@@ -191,9 +191,9 @@ Visualization Manager:
             {}
           cam_left:
             {}
-          tracking_cam_left:
+          localization_cam_left:
             {}
-          tracking_cam_right:
+          localization_cam_right:
             {}
         odom:
           {}
@@ -230,7 +230,7 @@ Visualization Manager:
         Shaft Length: 0.300000012
         Shaft Radius: 0.0299999993
         Value: Arrow
-      Topic: /tracking/cam_right/odom/0
+      Topic: /localization/cam_right/odom/0
       Unreliable: false
       Value: true
     - Angle Tolerance: 0.100000001
@@ -264,7 +264,7 @@ Visualization Manager:
         Shaft Length: 0.300000012
         Shaft Radius: 0.0299999993
         Value: Arrow
-      Topic: /tracking/cam_left/odom/0
+      Topic: /localization/cam_left/odom/0
       Unreliable: false
       Value: true
   Enabled: true

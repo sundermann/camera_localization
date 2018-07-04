@@ -1,6 +1,6 @@
 image_width: 1920
 image_height: 1080
-camera_name: tracking_cam_left
+camera_name: localization_cam_left
 camera_matrix:
   rows: 3
   cols: 3
