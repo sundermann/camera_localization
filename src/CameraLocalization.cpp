@@ -201,14 +201,12 @@ void CameraLocalization::onImage(const sensor_msgs::ImageConstPtr &msg, const se
 
     }
 
-    if (!mapMarkerIds.empty()) {
+    /*if (!mapMarkerIds.empty()) {
         cv::aruco::drawDetectedMarkers(cvDetectionImage->image, mapMarkerCorners, mapMarkerIds);
         cv::aruco::drawDetectedMarkers(cvDetectionImage->image, carMarkerCorners, carMarkerIds);
-    }
+    }*/
 
     if (foundCamera) {
-        visualization_msgs::MarkerArray markers;
-
         if (!carMarkerCorners.empty()) {
             std::vector<cv::Vec3d> rvec, tvec;
             cv::aruco::estimatePoseSingleMarkers(carMarkerCorners,
@@ -229,7 +227,7 @@ void CameraLocalization::onImage(const sensor_msgs::ImageConstPtr &msg, const se
                                   cameraModel.intrinsicMatrix(),
                                   cameraModel.distortionCoeffs(),
                                   imagePoints);
-                cv::line(cvDetectionImage->image, imagePoints[0], imagePoints[1], cv::Scalar(255, 255, 255), 3);
+                //cv::line(cvDetectionImage->image, imagePoints[0], imagePoints[1], cv::Scalar(255, 255, 255), 3);
 
                 auto p1 = getMapCoordinates(cameraModel, imagePoints[0], markerTranslation.z());
                 auto p2 = getMapCoordinates(cameraModel, imagePoints[1], markerTranslation.z());
@@ -287,9 +285,6 @@ void CameraLocalization::onImage(const sensor_msgs::ImageConstPtr &msg, const se
                 lastOdometries[carMarkerIds[i]] = odometry;
             }
         }
-
-        markerPublisher.publish(markers);
-
     }
 
     cvDetectionImage->encoding = cvTypeToRosType(cvDetectionImage->image.type());
