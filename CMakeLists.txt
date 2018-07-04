@@ -22,7 +22,7 @@ find_package(OpenCV REQUIRED)
 
 
 generate_dynamic_reconfigure_options(
-        cfg/VisualOdometry.cfg
+        cfg/CameraLocalization.cfg
 )
 
 catkin_package(

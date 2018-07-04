@@ -13,7 +13,7 @@
 #include <nav_msgs/OccupancyGrid.h>
 #include <visualization_msgs/MarkerArray.h>
 
-#include <fub_visual_odometry/VisualOdometryConfig.h>
+#include <camera_localization/CameraLocalizationConfig.h>
 
 #include <image_transport/image_transport.h>
 #include <dynamic_reconfigure/server.h>
@@ -51,7 +51,7 @@ class CameraLocalization {
      * @param config The new config
      * @param level Level counter starting at 0
      */
-    void onReconfigure(VisualOdometryConfig &config, uint32_t level);
+    void onReconfigure(CameraLocalizationConfig &config, uint32_t level);
 
     /**
      * Transforms a pixel coordinate into map coordinates using inverse reprojection.
@@ -120,8 +120,8 @@ class CameraLocalization {
 
     ros::NodeHandle globalNodeHandle;
     ros::NodeHandle privateNodeHandle;
-    dynamic_reconfigure::Server<VisualOdometryConfig> server;
-    dynamic_reconfigure::Server<VisualOdometryConfig>::CallbackType f;
+    dynamic_reconfigure::Server<CameraLocalizationConfig> server;
+    dynamic_reconfigure::Server<CameraLocalizationConfig>::CallbackType f;
 
     image_transport::Publisher detectionPublisher;
     ros::Publisher markerPublisher;
@@ -135,7 +135,7 @@ class CameraLocalization {
     tf2_ros::TransformBroadcaster transformBroadcaster;
     tf2::Vector3 markerTranslation;
 
-    VisualOdometryConfig config;
+    CameraLocalizationConfig config;
     cv::Ptr<cv::aruco::Dictionary> mapDictionary;
     cv::Ptr<cv::aruco::Dictionary> carDictionary;
     cv::Ptr<cv::aruco::DetectorParameters> detectorParams;

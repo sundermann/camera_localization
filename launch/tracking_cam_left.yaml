@@ -1,0 +1,20 @@
+image_width: 1920
+image_height: 1080
+camera_name: tracking_cam_left
+camera_matrix:
+  rows: 3
+  cols: 3
+  data: [1181.897149, 0.000000, 955.376793, 0.000000, 1179.600797, 534.376384, 0.000000, 0.000000, 1.000000]
+distortion_model: plumb_bob
+distortion_coefficients:
+  rows: 1
+  cols: 5
+  data: [0.065623, -0.119942, -0.006810, -0.003947, 0.000000]
+rectification_matrix:
+  rows: 3
+  cols: 3
+  data: [1.000000, 0.000000, 0.000000, 0.000000, 1.000000, 0.000000, 0.000000, 0.000000, 1.000000]
+projection_matrix:
+  rows: 3
+  cols: 4
+  data: [1169.702026, 0.000000, 943.706401, 0.000000, 0.000000, 1193.035522, 528.417302, 0.000000, 0.000000, 0.000000, 1.000000, 0.000000]

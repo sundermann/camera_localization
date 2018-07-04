@@ -34,7 +34,7 @@ CameraLocalization::CameraLocalization(ros::NodeHandle &globalNodeHandle, ros::N
     server.setCallback(f);
 }
 
-void CameraLocalization::onReconfigure(VisualOdometryConfig &config, uint32_t level) {
+void CameraLocalization::onReconfigure(CameraLocalizationConfig &config, uint32_t level) {
     this->config = config;
 
     detectorParams->adaptiveThreshConstant = config.adaptiveThreshConstant;
