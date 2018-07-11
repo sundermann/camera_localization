@@ -163,7 +163,7 @@ void CameraLocalization::onImage(const sensor_msgs::ImageConstPtr &msg, const se
                                          cameraModel.distortionCoeffs(),
                                          rvec,
                                          translationMatrix);
-            ROS_ERROR("Camera pose error: %f", rms);
+            ROS_ERROR("Camera %s pose error: %f", msg->header.frame_id.c_str(), rms);
 
             rotationMatrix = cv::Mat1d::zeros(3, 3);
             cv::Rodrigues(rvec, rotationMatrix);
@@ -286,9 +286,6 @@ void CameraLocalization::onImage(const sensor_msgs::ImageConstPtr &msg, const se
             }
         }
     }
-
-    cvDetectionImage->encoding = cvTypeToRosType(cvDetectionImage->image.type());
-    //detectionPublisher.publish(cvDetectionImage->toImageMsg());
 }
 
 geometry_msgs::Twist CameraLocalization::getTwist(const nav_msgs::Odometry &last,

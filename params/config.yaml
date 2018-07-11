@@ -1,7 +1,7 @@
 !!python/object/new:dynamic_reconfigure.encoding.Config
 dictitems:
   adaptiveThreshConstant: 7.0
-  adaptiveThreshWinSizeMax: 23
+  adaptiveThreshWinSizeMax: 20
   adaptiveThreshWinSizeMin: 3
   adaptiveThreshWinSizeStep: 10
   cornerRefinementMaxIterations: 30
@@ -13,7 +13,7 @@ dictitems:
   groups: !!python/object/new:dynamic_reconfigure.encoding.Config
     dictitems:
       adaptiveThreshConstant: 7.0
-      adaptiveThreshWinSizeMax: 23
+      adaptiveThreshWinSizeMax: 20
       adaptiveThreshWinSizeMin: 3
       adaptiveThreshWinSizeStep: 10
       cornerRefinementMaxIterations: 30

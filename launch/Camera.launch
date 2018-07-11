@@ -1,6 +1,6 @@
 <launch>
   <node name="cam_left" pkg="usb_cam" type="usb_cam_node" output="screen" ns="localization">
-    <param name="video_device" value="/dev/video0" />
+    <param name="video_device" value="/dev/video-left" />
     <param name="image_width" value="1920" />
     <param name="image_height" value="1080" />
     <param name="pixel_format" value="mjpeg" />
@@ -11,12 +11,12 @@
     <param name="focus" value="0"/>
     <param name="sharpness" value="130"/>
     <param name="autoexposure" value="false"/>
-    <param name="exposure" value="100"/>
-    <param name="gain" value="50"/>
+    <param name="exposure" value="50"/>
+    <param name="gain" value="150"/>
   </node>
 
   <node name="cam_right" pkg="usb_cam" type="usb_cam_node" output="screen" ns="localization">
-    <param name="video_device" value="/dev/video1" />
+    <param name="video_device" value="/dev/video-right" />
     <param name="image_width" value="1920" />
     <param name="image_height" value="1080" />
     <param name="pixel_format" value="mjpeg" />
@@ -27,12 +27,12 @@
     <param name="focus" value="0"/>
     <param name="sharpness" value="130"/>
     <param name="autoexposure" value="false"/>
-    <param name="exposure" value="100"/>
-    <param name="gain" value="50"/>
+    <param name="exposure" value="50"/>
+    <param name="gain" value="150"/>
   </node>
 
   <node name="cam_middle" pkg="usb_cam" type="usb_cam_node" output="screen" ns="localization">
-    <param name="video_device" value="/dev/video2" />
+    <param name="video_device" value="/dev/video-middle" />
     <param name="image_width" value="1920" />
     <param name="image_height" value="1080" />
     <param name="pixel_format" value="mjpeg" />
