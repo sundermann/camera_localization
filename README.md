@@ -62,4 +62,3 @@ Runs all the nodes needed for localization at our lab. It also includes the map_
 
 ## Multimaster.launch
 Runs the multimaster_fkie master_discovery node so the cars and detect the computer. Make sure `ROS_HOSTNAME` and `ROS_MASTER_URI` are set to the ip of the computer.
-
