@@ -29,6 +29,14 @@ Run rviz and check if the tf frames of each camera has been positioned correctly
 # Multimaster
 The localization node is designed to run on a separate computer with its own roscore. The ros package [multimaster_fkie](http://wiki.ros.org/multimaster_fkie) is used to send the localization information to the individual roscores on the cars.
 
+## Connecting to the localization computer on the car
+Start the master_discovery and master_sync node from the ros-multimaster-fkie package:
+
+```
+rosrun master_discovery_fkie master_discovery 
+rosrun master_sync_fkie master_sync
+```
+
 # Configuration
 Configuration is done through dynamic reconfigure and launch files. The dynamic reconfigure config contains the parameters for the aruco marker detection which can be adjusted while running the node. Any parameter change will trigger a redection of the markers on the map surface.
 
