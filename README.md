@@ -37,6 +37,16 @@ rosrun master_discovery_fkie master_discovery
 rosrun master_sync_fkie master_sync
 ```
 
+## Launchfile to connect only to the localization host
+```
+<launch>
+    <node name="master_discovery" pkg="master_discovery_fkie" type="master_discovery" output="screen"/>
+    <node name="master_sync" pkg="master_sync_fkie" type="master_sync" output="screen">
+        <rosparam param="sync_hosts">['192.168.43.20']</rosparam>
+    </node>
+</launch>
+```
+
 # Configuration
 Configuration is done through dynamic reconfigure and launch files. The dynamic reconfigure config contains the parameters for the aruco marker detection which can be adjusted while running the node. Any parameter change will trigger a redection of the markers on the map surface.
 
