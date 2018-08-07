@@ -25,7 +25,7 @@ CameraLocalization::CameraLocalization(ros::NodeHandle &globalNodeHandle, ros::N
     auto x = privateNodeHandle.param("front_marker_translation_x", 0.20);
     auto y = privateNodeHandle.param("front_marker_translation_y", 0);
     auto z = privateNodeHandle.param("front_marker_translation_z", 0.19);
-    markerTranslation = tf2::Vector3(x, y, z);
+    defaultMarkerTranslation = tf2::Vector3(x, y, z);
 
     this->globalNodeHandle = globalNodeHandle;
     this->privateNodeHandle = privateNodeHandle;
@@ -229,8 +229,18 @@ void CameraLocalization::onImage(const sensor_msgs::ImageConstPtr &msg, const se
                                   imagePoints);
                 //cv::line(cvDetectionImage->image, imagePoints[0], imagePoints[1], cv::Scalar(255, 255, 255), 3);
 
-                auto p1 = getMapCoordinates(cameraModel, imagePoints[0], markerTranslation.z());
-                auto p2 = getMapCoordinates(cameraModel, imagePoints[1], markerTranslation.z());
+                tf2::Vector3 markerTranslation = defaultMarkerTranslation;
+                double xTranslation, yTranslation, zTranslation;
+                auto has_x = privateNodeHandle.getParam(cv::format("front_marker_translation_%d_x", carMarkerIds[i]), xTranslation);
+                auto has_y = privateNodeHandle.getParam(cv::format("front_marker_translation_%d_y", carMarkerIds[i]), yTranslation);
+                auto has_z = privateNodeHandle.getParam(cv::format("front_marker_translation_%d_z", carMarkerIds[i]), zTranslation);
+
+                if(has_x && has_y && has_z) {
+                    markerTranslation = tf2::Vector3(xTranslation, yTranslation, zTranslation);
+                }
+
+                auto p1 = getMapCoordinates(cameraModel, imagePoints[0], markerTranslation);
+                auto p2 = getMapCoordinates(cameraModel, imagePoints[1], markerTranslation);
                 auto yaw = getOrientation(p2, p1);
 
                 // We could probably also get the orientation from rvec
@@ -247,7 +257,7 @@ void CameraLocalization::onImage(const sensor_msgs::ImageConstPtr &msg, const se
                 // Get marker coordinates
                 geometry_msgs::Point markerPoint = getMapCoordinates(cameraModel,
                                                                      imagePoints[0],
-                                                                     markerTranslation.z());
+                                                                     markerTranslation);
 
                 // Shift marker coordinates to base link (center of rear axe at ground)
                 // First remove rotation then translate by marker shift and rotate back
@@ -258,7 +268,7 @@ void CameraLocalization::onImage(const sensor_msgs::ImageConstPtr &msg, const se
 
                 tf2::Matrix3x3 rotationMatrix(tf2Orientation);
                 tf2::Vector3 baseLinkVector =
-                    rotationMatrix * ((rotationMatrix.inverse() * markerPointVector) - markerTranslation);
+                    rotationMatrix * ((rotationMatrix.transpose() * markerPointVector) - markerTranslation);
 
                 geometry_msgs::TransformStamped baseLinkTransform;
                 baseLinkTransform.header = msg->header;
@@ -330,7 +340,7 @@ double CameraLocalization::getOrientation(const geometry_msgs::Point &front, con
 
 geometry_msgs::Point CameraLocalization::getMapCoordinates(const image_geometry::PinholeCameraModel &cameraModel,
                                                        const cv::Point2d &point,
-                                                       double height) const {
+                                                       const tf2::Vector3 markerTranslation) const {
     auto rectifiedPoint = cameraModel.rectifyPoint(point);
 
     cv::Mat1d imagePoint(3, 1);
@@ -340,7 +350,7 @@ geometry_msgs::Point CameraLocalization::getMapCoordinates(const image_geometry:
     double scale = 0;
     pointCameraCoordinates = rotationMatrix.inv() * cv::Mat1d(cameraModel.intrinsicMatrix().inv()) * imagePoint;
     cameraPosition = rotationMatrix.inv() * translationMatrix;
-    scale = height + cameraPosition(2, 0);
+    scale = markerTranslation.z() + cameraPosition(2, 0);
     scale /= pointCameraCoordinates(2, 0);
 
     cv::Mat1d wcTranslation(3, 1);

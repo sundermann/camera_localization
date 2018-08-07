@@ -58,6 +58,16 @@
         <param name="front_marker_translation_y" value="0" />
         <param name="front_marker_translation_z" value="0.20" />
 
+        <param name="front_marker_translation_0_x" value="0.12" />
+        <param name="front_marker_translation_0_y" value="0" />
+        <param name="front_marker_translation_0_z" value="0.23" />
+
+        <param name="front_marker_translation_2_x" value="0.09" />
+        <param name="front_marker_translation_2_y" value="0" />
+        <param name="front_marker_translation_2_z" value="0.23" />
+
+        <param name="marker_2_emulate_gps_drift" value="3" />
+
         <param name="marker_0_x" value="5.71" />
         <param name="marker_0_y" value="0.21" />
         <param name="marker_0_z" value="0.0" />

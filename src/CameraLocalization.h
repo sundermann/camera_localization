@@ -61,7 +61,7 @@ class CameraLocalization {
      */
     geometry_msgs::Point getMapCoordinates(const image_geometry::PinholeCameraModel &cameraModel,
                                            const cv::Point2d &point,
-                                           double height) const;
+                                           const tf2::Vector3 markerTranslation) const;
 
     /**
      * Calculates the twist from two odometry messages
@@ -133,7 +133,7 @@ class CameraLocalization {
 
     tf2_ros::StaticTransformBroadcaster staticTransformBroadcaster;
     tf2_ros::TransformBroadcaster transformBroadcaster;
-    tf2::Vector3 markerTranslation;
+    tf2::Vector3 defaultMarkerTranslation;
 
     CameraLocalizationConfig config;
     cv::Ptr<cv::aruco::Dictionary> mapDictionary;
