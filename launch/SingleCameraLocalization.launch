@@ -66,7 +66,14 @@
         <param name="front_marker_translation_2_y" value="0" />
         <param name="front_marker_translation_2_z" value="0.23" />
 
-        <param name="marker_2_emulate_gps_drift" value="3" />
+        <param name="front_marker_translation_10_x" value="0.06" />
+        <param name="front_marker_translation_10_y" value="0" />
+        <param name="front_marker_translation_10_z" value="0.175" />
+
+        <param name="marker_4_emulate_drift" value="false" />
+        <param name="emulate_gps_drift_seed" value="3001" />
+        <param name="emulate_gps_drift_time" value="300" />
+        <param name="emulate_gps_drift_value" value="10" />
 
         <param name="marker_0_x" value="5.71" />
         <param name="marker_0_y" value="0.21" />

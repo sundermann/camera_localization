@@ -3,6 +3,7 @@
 namespace camera_localization {
 
 CameraLocalization::CameraLocalization(ros::NodeHandle &globalNodeHandle, ros::NodeHandle &privateNodeHandle) {
+    srand(static_cast<unsigned int>(privateNodeHandle.param<int>("emulate_gps_drift_seed", 3001)));
     image_transport::ImageTransport it(globalNodeHandle);
     imageSubscriber = it.subscribeCamera("image_raw",
                                          10,
@@ -15,7 +16,9 @@ CameraLocalization::CameraLocalization(ros::NodeHandle &globalNodeHandle, ros::N
     carDictionary = cv::aruco::getPredefinedDictionary(cv::aruco::DICT_4X4_50);
     detectorParams = cv::aruco::DetectorParameters::create();
     translationMatrix = cv::Mat1d::zeros(3, 1);
-
+    driftTimer = globalNodeHandle.createTimer(ros::Duration(privateNodeHandle.param("emulate_gps_drift_time", 300)),
+            &CameraLocalization::onChangeDrift, this);
+    onChangeDrift(ros::TimerEvent());
 
     for (int i = 0; i < carDictionary->bytesList.rows; i++) {
         odomPublishers[i] = globalNodeHandle.advertise<nav_msgs::Odometry>(cv::format("odom/%d", i), 1);
@@ -34,7 +37,7 @@ CameraLocalization::CameraLocalization(ros::NodeHandle &globalNodeHandle, ros::N
     server.setCallback(f);
 }
 
-void CameraLocalization::onReconfigure(CameraLocalizationConfig &config, uint32_t level) {
+void CameraLocalization::onReconfigure(const CameraLocalizationConfig &config, uint32_t level) {
     this->config = config;
 
     detectorParams->adaptiveThreshConstant = config.adaptiveThreshConstant;
@@ -76,6 +79,12 @@ void CameraLocalization::onReconfigure(CameraLocalizationConfig &config, uint32_
 
 void CameraLocalization::onMap(const nav_msgs::OccupancyGridConstPtr &msg) {
     map = msg;
+}
+
+void CameraLocalization::onChangeDrift(const ros::TimerEvent &timer) {
+    auto maximumDrift = privateNodeHandle.param("emulate_gps_drift_value", 4);
+    currentDriftX = (rand() % maximumDrift * 2.0 - maximumDrift) / 100.0;
+    currentDriftY = (rand() % maximumDrift * 2.0 - maximumDrift) / 100.0;
 }
 
 void CameraLocalization::onImage(const sensor_msgs::ImageConstPtr &msg, const sensor_msgs::CameraInfoConstPtr &info_msg) {
@@ -237,6 +246,14 @@ void CameraLocalization::onImage(const sensor_msgs::ImageConstPtr &msg, const se
 
                 if(has_x && has_y && has_z) {
                     markerTranslation = tf2::Vector3(xTranslation, yTranslation, zTranslation);
+                }
+
+                auto emulateDrift = privateNodeHandle.param(cv::format("marker_%d_emulate_drift", carMarkerIds[i]), false);
+
+                if (emulateDrift) {
+                    ROS_ERROR("Emulating drift for car %d, x:%f y: %f", carMarkerIds[i], currentDriftX, currentDriftY);
+                    markerTranslation.setX(markerTranslation.x() + currentDriftX);
+                    markerTranslation.setY(markerTranslation.y() + currentDriftY);
                 }
 
                 auto p1 = getMapCoordinates(cameraModel, imagePoints[0], markerTranslation);

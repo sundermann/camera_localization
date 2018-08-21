@@ -51,7 +51,12 @@ class CameraLocalization {
      * @param config The new config
      * @param level Level counter starting at 0
      */
-    void onReconfigure(CameraLocalizationConfig &config, uint32_t level);
+    void onReconfigure(const CameraLocalizationConfig &config, uint32_t level);
+
+    /**
+     * GPS emulation drift timer callback
+     */
+    void onChangeDrift(const ros::TimerEvent &timer);
 
     /**
      * Transforms a pixel coordinate into map coordinates using inverse reprojection.
@@ -148,6 +153,10 @@ class CameraLocalization {
     bool foundCamera = false;
     cv::Mat1d rotationMatrix;
     cv::Mat1d translationMatrix;
+
+    ros::Timer driftTimer;
+    double currentDriftX = 0.0;
+    double currentDriftY = 0.0;
 };
 
 }
