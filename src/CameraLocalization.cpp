@@ -330,7 +330,7 @@ void CameraLocalization::onImage(const sensor_msgs::ImageConstPtr &msg, const se
             cv::aruco::drawDetectedMarkers(cvDebugImage->image, carMarkerCorners, carMarkerIds, cv::Scalar(0, 255, 0));
         }
 
-        detectionPublisher.publish(cvDebugImage);
+        detectionPublisher.publish(cvDebugImage->toImageMsg());
     }
 }
 
