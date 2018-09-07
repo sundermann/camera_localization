@@ -53,6 +53,8 @@
         <remap from="odom/49" to="/localization/odom/49" />
         <remap from="odom/50" to="/localization/odom/50" />
 
+        <param name="show_debug_image" value="false" />
+
         <!-- car marker translation in respect to base_link -->
         <param name="front_marker_translation_x" value="0.21" />
         <param name="front_marker_translation_y" value="0" />

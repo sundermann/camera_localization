@@ -30,6 +30,8 @@ CameraLocalization::CameraLocalization(ros::NodeHandle &globalNodeHandle, ros::N
     auto z = privateNodeHandle.param("front_marker_translation_z", 0.19);
     defaultMarkerTranslation = tf2::Vector3(x, y, z);
 
+    this->showDebugImage = privateNodeHandle.param("show_debug_image", false);
+
     this->globalNodeHandle = globalNodeHandle;
     this->privateNodeHandle = privateNodeHandle;
 
@@ -210,11 +212,6 @@ void CameraLocalization::onImage(const sensor_msgs::ImageConstPtr &msg, const se
 
     }
 
-    /*if (!mapMarkerIds.empty()) {
-        cv::aruco::drawDetectedMarkers(cvDetectionImage->image, mapMarkerCorners, mapMarkerIds);
-        cv::aruco::drawDetectedMarkers(cvDetectionImage->image, carMarkerCorners, carMarkerIds);
-    }*/
-
     if (foundCamera) {
         if (!carMarkerCorners.empty()) {
             std::vector<cv::Vec3d> rvec, tvec;
@@ -312,6 +309,28 @@ void CameraLocalization::onImage(const sensor_msgs::ImageConstPtr &msg, const se
                 lastOdometries[carMarkerIds[i]] = odometry;
             }
         }
+    }
+
+    if (showDebugImage) {
+        cv_bridge::CvImagePtr cvDebugImage;
+
+        try {
+            cvDetectionImage = cv_bridge::toCvCopy(msg, sensor_msgs::image_encodings::RGB8);
+        }
+        catch (cv_bridge::Exception &e) {
+            ROS_ERROR("cv_bridge exception: %s", e.what());
+            return;
+        }
+
+        if (!mapMarkerIds.empty()) {
+            cv::aruco::drawDetectedMarkers(cvDebugImage->image, mapMarkerCorners, mapMarkerIds, cv::Scalar(255, 0, 0));
+        }
+
+        if (!carMarkerIds.empty()) {
+            cv::aruco::drawDetectedMarkers(cvDebugImage->image, carMarkerCorners, carMarkerIds, cv::Scalar(0, 255, 0));
+        }
+
+        detectionPublisher.publish(cvDebugImage);
     }
 }
 

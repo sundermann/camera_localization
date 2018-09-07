@@ -157,6 +157,8 @@ class CameraLocalization {
     ros::Timer driftTimer;
     double currentDriftX = 0.0;
     double currentDriftY = 0.0;
+
+    bool showDebugImage;
 };
 
 }
