@@ -53,112 +53,41 @@
         <remap from="odom/49" to="/localization/odom/49" />
         <remap from="odom/50" to="/localization/odom/50" />
 
-        <param name="show_debug_image" value="false" />
-
         <!-- car marker translation in respect to base_link -->
-        <param name="front_marker_translation_x" value="0.21" />
-        <param name="front_marker_translation_y" value="0" />
-        <param name="front_marker_translation_z" value="0.20" />
+        <param name="front_marker_translation_x" value="0.00" />
+        <param name="front_marker_translation_y" value="0.00" />
+        <param name="front_marker_translation_z" value="0.30" />
 
-        <param name="front_marker_translation_0_x" value="0.12" />
-        <param name="front_marker_translation_0_y" value="0" />
-        <param name="front_marker_translation_0_z" value="0.23" />
-
-        <param name="front_marker_translation_2_x" value="0.09" />
-        <param name="front_marker_translation_2_y" value="0" />
-        <param name="front_marker_translation_2_z" value="0.23" />
-
-        <param name="front_marker_translation_10_x" value="0.06" />
-        <param name="front_marker_translation_10_y" value="0" />
-        <param name="front_marker_translation_10_z" value="0.175" />
-
-        <param name="marker_4_emulate_drift" value="false" />
-        <param name="emulate_gps_drift_seed" value="3001" />
-        <param name="emulate_gps_drift_time" value="300" />
-        <param name="emulate_gps_drift_value" value="10" />
-
-        <param name="marker_0_x" value="5.71" />
-        <param name="marker_0_y" value="0.21" />
-        <param name="marker_0_z" value="0.0" />
-
-        <param name="marker_1_x" value="2.56" />
-        <param name="marker_1_y" value="2.745" />
+        <param name="marker_1_x" value="0.175" />
+        <param name="marker_1_y" value="0.135" />
         <param name="marker_1_z" value="0.0" />
 
-        <param name="marker_2_x" value="4.06" />
-        <param name="marker_2_y" value="1.30" />
-        <param name="marker_2_z" value="0.0" />
-
-        <param name="marker_3_x" value="3.35" />
-        <param name="marker_3_y" value="3.775" />
-        <param name="marker_3_z" value="0.0" />
-
-        <param name="marker_4_x" value="4.973" />
-        <param name="marker_4_y" value="2.528" />
+        <param name="marker_4_x" value="2.175" />
+        <param name="marker_4_y" value="0.135" />
         <param name="marker_4_z" value="0.0" />
 
-        <param name="marker_5_x" value="1.265" />
-        <param name="marker_5_y" value="2.50" />
-        <param name="marker_5_z" value="0.0" />
-
-        <param name="marker_6_x" value="5.558" />
-        <param name="marker_6_y" value="3.77" />
+        <param name="marker_6_x" value="4.175" />
+        <param name="marker_6_y" value="0.135" />
         <param name="marker_6_z" value="0.0" />
 
-        <param name="marker_7_x" value="1.58" />
-        <param name="marker_7_y" value="1.02" />
+        <param name="marker_2_x" value="5.825" />
+        <param name="marker_2_y" value="0.135" />
+        <param name="marker_2_z" value="0.0" />
+
+        <param name="marker_7_x" value="0.175" />
+        <param name="marker_7_y" value="4.175" />
         <param name="marker_7_z" value="0.0" />
 
-        <param name="marker_8_x" value="2.57" />
-        <param name="marker_8_y" value="1.494" />
-        <param name="marker_8_z" value="0.0" />
+        <param name="marker_5_x" value="2.175" />
+        <param name="marker_5_y" value="4.175" />
+        <param name="marker_5_z" value="0.0" />
 
-        <param name="marker_9_x" value="3.70" />
-        <param name="marker_9_y" value="2.62" />
-        <param name="marker_9_z" value="0.0" />
+        <param name="marker_3_x" value="4.175" />
+        <param name="marker_3_y" value="4.175" />
+        <param name="marker_3_z" value="0.0" />
 
-        <param name="marker_10_x" value="0.27" />
-        <param name="marker_10_y" value="3.70" />
-        <param name="marker_10_z" value="0.0" />
-
-        <param name="marker_11_x" value="0.27" />
-        <param name="marker_11_y" value="0.142" />
-        <param name="marker_11_z" value="0.0" />
-
-        <param name="marker_12_x" value="3.13" />
-        <param name="marker_12_y" value="3.815" />
-        <param name="marker_12_z" value="0.0" />
-
-        <param name="marker_21_x" value="0.12" />
-        <param name="marker_21_y" value="0.165" />
-        <param name="marker_21_z" value="0.0" />
-
-        <param name="marker_23_x" value="0.118" />
-        <param name="marker_23_y" value="3.695" />
-        <param name="marker_23_z" value="0.0" />
-
-        <param name="marker_22_x" value="5.530" />
-        <param name="marker_22_y" value="3.695" />
-        <param name="marker_22_z" value="0.0" />
-
-        <param name="marker_24_x" value="5.530" />
-        <param name="marker_24_y" value="0.165" />
-        <param name="marker_24_z" value="0.0" />
-
-        <param name="marker_27_x" value="2.120" />
-        <param name="marker_27_y" value="0.165" />
-        <param name="marker_27_z" value="0.0" />
-
-        <param name="marker_28_x" value="2.118" />
-        <param name="marker_28_y" value="3.695" />
-        <param name="marker_28_z" value="0.0" />
-
-        <param name="marker_26_x" value="3.618" />
-        <param name="marker_26_y" value="3.695" />
-        <param name="marker_26_z" value="0.0" />
-
-        <param name="marker_29_x" value="3.620" />
-        <param name="marker_29_y" value="0.165" />
-        <param name="marker_29_z" value="0.0" />
+        <param name="marker_0_x" value="5.825" />
+        <param name="marker_0_y" value="4.175" />
+        <param name="marker_0_z" value="0.0" />
     </node>
 </launch>
