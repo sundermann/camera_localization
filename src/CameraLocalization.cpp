@@ -49,7 +49,7 @@ void CameraLocalization::onReconfigure(const CameraLocalizationConfig &config, u
     detectorParams->cornerRefinementMaxIterations = config.cornerRefinementMaxIterations;
     detectorParams->cornerRefinementMinAccuracy = config.cornerRefinementMinAccuracy;
     detectorParams->cornerRefinementWinSize = config.cornerRefinementWinSize;
-#if OPENCV_MINOR_VERSION == 2
+#if CV_MINOR_VERSION == 2
     detectorParams->doCornerRefinement = config.doCornerRefinement;
 #else
     if (config.doCornerRefinement) {
@@ -105,13 +105,21 @@ void CameraLocalization::onImage(const sensor_msgs::ImageConstPtr &msg, const se
 
     std::vector<int> carMarkerIds;
     std::vector<std::vector<cv::Point2f>> carMarkerCorners;
+#if CV_VERSION_MINOR > 2
     cv::aruco::detectMarkers(cvDetectionImage->image, carDictionary, carMarkerCorners, carMarkerIds, detectorParams,
                              cv::noArray(), cameraModel.intrinsicMatrix(), cameraModel.distortionCoeffs());
+#else
+    cv::aruco::detectMarkers(cvDetectionImage->image, carDictionary, carMarkerCorners, carMarkerIds, detectorParams);
+#endif
+
 
     if (!foundCamera) {
+#if CV_VERSION_MINOR > 2
         cv::aruco::detectMarkers(cvDetectionImage->image, mapDictionary, mapMarkerCorners, mapMarkerIds, detectorParams,
                                  cv::noArray(), cameraModel.intrinsicMatrix(), cameraModel.distortionCoeffs());
-
+#else
+        cv::aruco::detectMarkers(cvDetectionImage->image, mapDictionary, mapMarkerCorners, mapMarkerIds, detectorParams);
+#endif
 
         std::vector<cv::Point3f> worldCoordinates;
         std::vector<cv::Point2f> imageCoordinates;
