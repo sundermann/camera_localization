@@ -109,6 +109,7 @@ void CameraLocalization::onImage(const sensor_msgs::ImageConstPtr &msg, const se
     cv::aruco::detectMarkers(cvDetectionImage->image, carDictionary, carMarkerCorners, carMarkerIds, detectorParams,
                              cv::noArray(), cameraModel.intrinsicMatrix(), cameraModel.distortionCoeffs());
 #else
+    cv::undistort(cvDetectionImage->image, cvDetectionImage->image, cameraModel.intrinsicMatrix(), cameraModel.distortionCoeffs());
     cv::aruco::detectMarkers(cvDetectionImage->image, carDictionary, carMarkerCorners, carMarkerIds, detectorParams);
 #endif
 
