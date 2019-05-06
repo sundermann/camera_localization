@@ -2,5 +2,4 @@
     <include file="$(find camera_localization)/launch/Camera.launch" />
     <include file="$(find camera_localization)/launch/CameraLocalization.launch" />
     <include file="$(find camera_localization)/launch/Multimaster.launch" />
-    <include file="$(find map_publisher)/launch/robotics_lab.launch" />
 </launch>
