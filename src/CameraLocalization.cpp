@@ -183,37 +183,38 @@ void CameraLocalization::onImage(const sensor_msgs::ImageConstPtr &msg, const se
                                          rvec,
                                          translationMatrix);
             ROS_ERROR("Camera %s pose error: %f", msg->header.frame_id.c_str(), rms);
+            if (rms < 10.0)  {
+                rotationMatrix = cv::Mat1d::zeros(3, 3);
+                cv::Rodrigues(rvec, rotationMatrix);
 
-            rotationMatrix = cv::Mat1d::zeros(3, 3);
-            cv::Rodrigues(rvec, rotationMatrix);
+                cv::Mat1d cameraTransformRotation = rotationMatrix.t();
+                cv::Mat1d cameraTranslationMatrix = -cameraTransformRotation * translationMatrix;
 
-            cv::Mat1d cameraTransformRotation = rotationMatrix.t();
-            cv::Mat1d cameraTranslationMatrix = -cameraTransformRotation * translationMatrix;
+                tf2::Matrix3x3 cameraRotation
+                    (cameraTransformRotation(0, 0), cameraTransformRotation(0, 1), cameraTransformRotation(0, 2),
+                     cameraTransformRotation(1, 0), cameraTransformRotation(1, 1), cameraTransformRotation(1, 2),
+                     cameraTransformRotation(2, 0), cameraTransformRotation(2, 1), cameraTransformRotation(2, 2));
 
-            tf2::Matrix3x3 cameraRotation
-                (cameraTransformRotation(0, 0), cameraTransformRotation(0, 1), cameraTransformRotation(0, 2),
-                 cameraTransformRotation(1, 0), cameraTransformRotation(1, 1), cameraTransformRotation(1, 2),
-                 cameraTransformRotation(2, 0), cameraTransformRotation(2, 1), cameraTransformRotation(2, 2));
+                tf2::Vector3 cameraTranslation
+                    (cameraTranslationMatrix(0, 0), cameraTranslationMatrix(1, 0), cameraTranslationMatrix(2, 0));
 
-            tf2::Vector3 cameraTranslation
-                (cameraTranslationMatrix(0, 0), cameraTranslationMatrix(1, 0), cameraTranslationMatrix(2, 0));
+                geometry_msgs::TransformStamped cameraTransform;
+                cameraTransform.header = msg->header;
+                cameraTransform.header.stamp = msg->header.stamp;
+                cameraTransform.header.frame_id = "map";
+                cameraTransform.child_frame_id = msg->header.frame_id;
+                geometry_msgs::Vector3 m;
+                tf2::convert(cameraTranslation, m);
+                cameraTransform.transform.translation = m;
+                geometry_msgs::Quaternion q;
+                tf2::Quaternion tfq;
+                cameraRotation.getRotation(tfq);
+                tf2::convert(tfq, q);
+                cameraTransform.transform.rotation = q;
+                staticTransformBroadcaster.sendTransform(cameraTransform);
 
-            geometry_msgs::TransformStamped cameraTransform;
-            cameraTransform.header = msg->header;
-            cameraTransform.header.stamp = msg->header.stamp;
-            cameraTransform.header.frame_id = "map";
-            cameraTransform.child_frame_id = msg->header.frame_id;
-            geometry_msgs::Vector3 m;
-            tf2::convert(cameraTranslation, m);
-            cameraTransform.transform.translation = m;
-            geometry_msgs::Quaternion q;
-            tf2::Quaternion tfq;
-            cameraRotation.getRotation(tfq);
-            tf2::convert(tfq, q);
-            cameraTransform.transform.rotation = q;
-            staticTransformBroadcaster.sendTransform(cameraTransform);
-
-            foundCamera = true;
+                foundCamera = true;
+            }
         } else {
             ROS_ERROR("Not enough world coordinates!");
         }
