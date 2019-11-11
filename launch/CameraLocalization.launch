@@ -1,5 +1,5 @@
 <launch>
-    <include file="$(find camera_localization)/launch/SingleCameraLocalization.launch" ns="/localization/cam_left/" />
-    <include file="$(find camera_localization)/launch/SingleCameraLocalization.launch" ns="/localization/cam_right/" />
-    <include file="$(find camera_localization)/launch/SingleCameraLocalization.launch" ns="/localization/cam_middle/" />
+    <include file="$(find camera_localization)/launch/SingleCameraLocalization.launch" ns="/communication/cam_left/" />
+    <include file="$(find camera_localization)/launch/SingleCameraLocalization.launch" ns="/communication/cam_right/" />
+    <include file="$(find camera_localization)/launch/SingleCameraLocalization.launch" ns="/communication/cam_middle/" />
 </launch>

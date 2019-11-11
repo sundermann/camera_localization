@@ -1,5 +1,5 @@
 <launch>
-  <node name="cam_left" pkg="usb_cam" type="usb_cam_node" output="screen" ns="localization">
+  <node name="cam_left" pkg="usb_cam" type="usb_cam_node" output="screen" ns="communication">
     <param name="video_device" value="/dev/video-left" />
     <param name="image_width" value="1920" />
     <param name="image_height" value="1080" />
@@ -15,7 +15,7 @@
     <param name="gain" value="150"/>
   </node>
 
-  <node name="cam_right" pkg="usb_cam" type="usb_cam_node" output="screen" ns="localization">
+  <node name="cam_right" pkg="usb_cam" type="usb_cam_node" output="screen" ns="communication">
     <param name="video_device" value="/dev/video-right" />
     <param name="image_width" value="1920" />
     <param name="image_height" value="1080" />
@@ -31,7 +31,7 @@
     <param name="gain" value="150"/>
   </node>
 
-  <node name="cam_middle" pkg="usb_cam" type="usb_cam_node" output="screen" ns="localization">
+  <node name="cam_middle" pkg="usb_cam" type="usb_cam_node" output="screen" ns="communication">
     <param name="video_device" value="/dev/video-middle" />
     <param name="image_width" value="1920" />
     <param name="image_height" value="1080" />
